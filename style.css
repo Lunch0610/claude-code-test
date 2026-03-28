@@ -1005,6 +1005,60 @@ textarea { resize: vertical; }
   color: var(--primary);
 }
 
+/* 個数コントロール */
+.qty-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.qty-btn {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: white;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary);
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.qty-btn:hover { background: var(--primary-light); }
+
+.qty-control input[type="number"] {
+  width: 60px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.wish-qty {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.wish-subtotal {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.circle-total {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary);
+  text-align: right;
+  padding-top: 4px;
+  margin-top: 4px;
+  border-top: 1px dashed var(--border);
+}
+
 /* トグルボタン */
 .toggle-group {
   display: flex;

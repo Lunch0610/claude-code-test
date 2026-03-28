@@ -793,6 +793,7 @@ document.addEventListener('DOMContentLoaded', () => {
       title,
       type: document.getElementById('input-wish-type').value,
       price: document.getElementById('input-wish-price').value,
+      qty: Math.max(1, parseInt(document.getElementById('input-wish-qty').value) || 1),
       memo: document.getElementById('input-wish-memo').value.trim(),
       bought: false
     });
@@ -800,6 +801,36 @@ document.addEventListener('DOMContentLoaded', () => {
     saveData(events);
     closeModal('modal-wish');
     renderShopping(ev);
+  });
+
+  // 個数±ボタン
+  document.getElementById('qty-minus').addEventListener('click', () => {
+    const el = document.getElementById('input-wish-qty');
+    el.value = Math.max(1, (parseInt(el.value) || 1) - 1);
+  });
+  document.getElementById('qty-plus').addEventListener('click', () => {
+    const el = document.getElementById('input-wish-qty');
+    el.value = (parseInt(el.value) || 1) + 1;
+  });
+
+  // テキスト出力
+  document.getElementById('btn-share-circles').addEventListener('click', () => {
+    const ev = events.find(e => e.id === currentEventId);
+    if (!ev) return;
+    document.getElementById('share-text-output').value = generateShareText(ev);
+    openModal('modal-share');
+  });
+
+  document.getElementById('btn-copy-share').addEventListener('click', () => {
+    const ta = document.getElementById('share-text-output');
+    navigator.clipboard.writeText(ta.value).then(() => {
+      const btn = document.getElementById('btn-copy-share');
+      btn.textContent = '✓ コピーしました';
+      setTimeout(() => { btn.textContent = '📋 コピー'; }, 2000);
+    }).catch(() => {
+      ta.select();
+      document.execCommand('copy');
+    });
   });
 
   document.getElementById('input-import-text').addEventListener('input', () => {
@@ -919,7 +950,9 @@ function renderShopping(ev) {
   const filtered = activeFilter === 'all' ? circles : circles.filter(c => c.section === activeFilter);
   const visited = filtered.filter(c => c.visited).length;
   const priority = filtered.filter(c => c.priority).length;
-  statsEl.textContent = `${visited}/${filtered.length}チェック済み　★優先: ${priority}`;
+  const grandTotal = filtered.reduce((s, c) =>
+    s + (c.wishItems || []).reduce((cs, w) => cs + (Number(w.price) || 0) * (Number(w.qty) || 1), 0), 0);
+  statsEl.textContent = `${visited}/${filtered.length}チェック済み　★優先: ${priority}${grandTotal > 0 ? `　合計: ¥${grandTotal.toLocaleString()}` : ''}`;
 
   // リスト描画（優先を上に、チェック済みを下に）
   const sorted = [...filtered].sort((a, b) => {
@@ -1006,6 +1039,44 @@ function renderShopping(ev) {
   });
 }
 
+function generateShareText(ev) {
+  const circles = (ev.circles || []).filter(c => (c.wishItems || []).length > 0);
+  if (circles.length === 0) return '欲しいものが登録されていません';
+
+  const priorityFirst = [...circles].sort((a, b) => {
+    if (a.priority !== b.priority) return a.priority ? -1 : 1;
+    return a.space.localeCompare(b.space);
+  });
+
+  let grandTotal = 0;
+  const lines = [];
+  lines.push(`📋 ${ev.name} 買い物リスト`);
+  lines.push(`📅 ${formatDate(ev.date)}`);
+  lines.push('');
+
+  priorityFirst.forEach(c => {
+    const items = c.wishItems || [];
+    const circleTotal = items.reduce((s, w) => s + (Number(w.price) || 0) * (Number(w.qty) || 1), 0);
+    grandTotal += circleTotal;
+    lines.push(`${c.priority ? '⭐' : '　'}【${c.space}】${c.name}`);
+    items.forEach(w => {
+      const qty = Number(w.qty) || 1;
+      const price = Number(w.price) || 0;
+      let line = `　  ${w.release}「${w.title}」(${w.type})`;
+      if (price) line += ` ¥${price.toLocaleString()}`;
+      if (qty > 1) line += ` ×${qty}`;
+      if (price && qty > 1) line += ` =¥${(price * qty).toLocaleString()}`;
+      if (w.memo) line += ` ※${w.memo}`;
+      lines.push(line);
+    });
+    if (circleTotal > 0) lines.push(`　  小計: ¥${circleTotal.toLocaleString()}`);
+    lines.push('');
+  });
+
+  lines.push(`💰 合計: ¥${grandTotal.toLocaleString()}`);
+  return lines.join('\n');
+}
+
 function toggleCircleVisited(ev, id) {
   const c = (ev.circles || []).find(c => c.id === id);
   if (!c) return;
@@ -1045,7 +1116,11 @@ function openWishModal(ev, circleId) {
 function renderWishItems(c) {
   const items = c.wishItems || [];
   if (items.length === 0) return '';
-  return `<div class="wish-list">${items.map(w => `
+  const circleTotal = items.reduce((s, w) => s + (Number(w.price) || 0) * (Number(w.qty) || 1), 0);
+  return `<div class="wish-list">${items.map(w => {
+    const qty = Number(w.qty) || 1;
+    const subtotal = (Number(w.price) || 0) * qty;
+    return `
     <div class="wish-item ${w.bought ? 'wish-bought' : ''}" data-wish-id="${w.id}">
       <div class="wish-check ${w.bought ? 'checked' : ''}" data-wish-check="${w.id}">
         ${w.bought ? '&#10003;' : ''}
@@ -1054,7 +1129,12 @@ function renderWishItems(c) {
       <span class="wish-type">${escHtml(w.type)}</span>
       <span class="wish-title">${escHtml(w.title)}</span>
       ${w.price ? `<span class="wish-price">¥${Number(w.price).toLocaleString()}</span>` : ''}
+      ${qty > 1 ? `<span class="wish-qty">×${qty}</span>` : ''}
+      ${w.price && qty > 1 ? `<span class="wish-subtotal">=¥${subtotal.toLocaleString()}</span>` : ''}
       ${w.memo ? `<span class="wish-memo-text">${escHtml(w.memo)}</span>` : ''}
       <button class="btn-icon danger" data-delete-wish="${w.id}" style="font-size:11px;padding:2px 4px">&#10005;</button>
-    </div>`).join('')}</div>`;
+    </div>`;
+  }).join('')}
+  ${circleTotal > 0 ? `<div class="circle-total">小計 ¥${circleTotal.toLocaleString()}</div>` : ''}
+  </div>`;
 }

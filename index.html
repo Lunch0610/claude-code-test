@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>同人イベントスケジューラー</title>
-  <link rel="stylesheet" href="style.css?v=8">
+  <link rel="stylesheet" href="style.css?v=9">
 </head>
 <body>
   <div id="app">
@@ -176,7 +176,10 @@
             <div class="card shopping-header-card">
               <div class="section-header">
                 <h3>サークルチェックリスト</h3>
+                <div style="display:flex;gap:6px">
+                <button class="btn-secondary btn-sm" id="btn-share-circles">&#128203; 出力</button>
                 <button class="btn-secondary btn-sm" id="btn-import-circles">&#128229; インポート</button>
+              </div>
               </div>
               <div id="shopping-filter" class="shopping-filter hidden">
                 <button class="filter-btn active" data-section="all">全て</button>
@@ -251,6 +254,14 @@
           <input type="number" id="input-wish-price" min="0" placeholder="例：500">
         </div>
         <div class="form-group">
+          <label for="input-wish-qty">個数</label>
+          <div class="qty-control">
+            <button class="qty-btn" id="qty-minus">－</button>
+            <input type="number" id="input-wish-qty" min="1" value="1">
+            <button class="qty-btn" id="qty-plus">＋</button>
+          </div>
+        </div>
+        <div class="form-group">
           <label for="input-wish-memo">メモ</label>
           <input type="text" id="input-wish-memo" placeholder="例：表紙が狐の本">
         </div>
@@ -258,6 +269,23 @@
       <div class="modal-footer">
         <button class="btn-secondary" data-modal="modal-wish">キャンセル</button>
         <button class="btn-primary" id="btn-save-wish">追加</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- モーダル: テキスト出力 -->
+  <div id="modal-share" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>テキスト出力</h2>
+        <button class="modal-close" data-modal="modal-share">&times;</button>
+      </div>
+      <div class="modal-body">
+        <textarea id="share-text-output" rows="14" readonly style="font-size:13px;line-height:1.7"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" data-modal="modal-share">閉じる</button>
+        <button class="btn-primary" id="btn-copy-share">&#128203; コピー</button>
       </div>
     </div>
   </div>
@@ -462,6 +490,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=8"></script>
+  <script src="app.js?v=9"></script>
 </body>
 </html>
