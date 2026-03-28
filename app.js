@@ -1,3 +1,45 @@
+// ===== IndexedDB (マップ画像) =====
+const MAP_DB_NAME = 'doujinshi-map-db';
+const MAP_DB_STORE = 'images';
+let _mapDB = null;
+
+function openMapDB() {
+  if (_mapDB) return Promise.resolve(_mapDB);
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(MAP_DB_NAME, 1);
+    req.onupgradeneeded = (e) => { e.target.result.createObjectStore(MAP_DB_STORE); };
+    req.onsuccess = (e) => { _mapDB = e.target.result; resolve(_mapDB); };
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function saveMapImageToDB(eventId, blob) {
+  return openMapDB().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(MAP_DB_STORE, 'readwrite');
+    tx.objectStore(MAP_DB_STORE).put(blob, eventId);
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error);
+  }));
+}
+
+function loadMapImageFromDB(eventId) {
+  return openMapDB().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(MAP_DB_STORE, 'readonly');
+    const req = tx.objectStore(MAP_DB_STORE).get(eventId);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(req.error);
+  }));
+}
+
+function deleteMapImageFromDB(eventId) {
+  return openMapDB().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(MAP_DB_STORE, 'readwrite');
+    tx.objectStore(MAP_DB_STORE).delete(eventId);
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error);
+  }));
+}
+
 // ===== データ管理 =====
 const STORAGE_KEY = 'doujinshi-events';
 
@@ -1154,12 +1196,39 @@ function renderMap(ev) {
   const uploadArea = document.getElementById('map-upload-area');
   const containerCard = document.getElementById('map-container-card');
 
-  if (ev.mapImage) {
+  // Migrate old base64 format to IndexedDB
+  if (ev.mapImage && !ev.hasMapImage) {
+    setUploadState('loading');
+    const base64 = ev.mapImage;
+    const tmpImg = new Image();
+    tmpImg.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = tmpImg.width; c.height = tmpImg.height;
+      c.getContext('2d').drawImage(tmpImg, 0, 0);
+      c.toBlob((blob) => {
+        saveMapImageToDB(ev.id, blob).then(() => {
+          ev.hasMapImage = true;
+          delete ev.mapImage;
+          saveData(events);
+          renderMap(ev);
+        }).catch(() => setUploadState('error', '移行に失敗しました'));
+      }, 'image/jpeg', 0.9);
+    };
+    tmpImg.src = base64;
+    return;
+  }
+
+  if (ev.hasMapImage) {
     uploadArea.classList.add('hidden');
     containerCard.classList.remove('hidden');
-    const img = document.getElementById('map-image');
-    if (img.src !== ev.mapImage) {
-      img.src = ev.mapImage;
+    if (!mapInitialized) initMapInteraction(ev);
+
+    loadMapImageFromDB(ev.id).then(blob => {
+      if (!blob) return;
+      const img = document.getElementById('map-image');
+      if (img._objectURL) URL.revokeObjectURL(img._objectURL);
+      const url = URL.createObjectURL(blob);
+      img._objectURL = url;
       img.onload = () => {
         document.getElementById('map-inner').style.width = img.naturalWidth + 'px';
         document.getElementById('map-inner').style.height = img.naturalHeight + 'px';
@@ -1171,13 +1240,22 @@ function renderMap(ev) {
         applyMapTransform();
         renderMapMarkers(ev);
       };
-    } else {
-      renderMapMarkers(ev);
-    }
-    if (!mapInitialized) initMapInteraction(ev);
+      img.src = url;
+    });
   } else {
     uploadArea.classList.remove('hidden');
+    setUploadState('');
     containerCard.classList.add('hidden');
+  }
+}
+
+function setUploadState(state, message) {
+  const area = document.getElementById('map-upload-area');
+  if (!area) return;
+  area.dataset.uploadState = state;
+  if (message) {
+    const msgEl = area.querySelector('.upload-error-msg');
+    if (msgEl) msgEl.textContent = message;
   }
 }
 
@@ -1393,6 +1471,22 @@ function setupMapControls(ev) {
   document.getElementById('input-map-file').onchange = (e) => loadMapImage(e, ev);
   document.getElementById('input-map-file2').onchange = (e) => loadMapImage(e, ev);
 
+  // ドラッグ＆ドロップ
+  const dropzone = document.getElementById('map-dropzone');
+  if (dropzone) {
+    dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('drag-over'); });
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('drag-over');
+      const file = e.dataTransfer.files[0];
+      if (file && file.type.startsWith('image/')) {
+        const fakeEvt = { target: { files: [file], value: '' } };
+        loadMapImage(fakeEvt, ev);
+      }
+    });
+  }
+
   document.getElementById('btn-map-change').onclick = () =>
     document.getElementById('input-map-file2').click();
 
@@ -1425,30 +1519,40 @@ function setupMapControls(ev) {
 function loadMapImage(e, ev) {
   const file = e.target.files[0];
   if (!file) return;
+  e.target.value = '';
+  setUploadState('loading');
+
   const reader = new FileReader();
+  reader.onerror = () => setUploadState('error', 'ファイルの読み込みに失敗しました');
   reader.onload = (re) => {
-    // canvasで圧縮してからlocalStorageに保存
     const img = new Image();
+    img.onerror = () => setUploadState('error', '画像の読み込みに失敗しました');
     img.onload = () => {
       const MAX = 2400;
       let w = img.width, h = img.height;
       if (w > MAX || h > MAX) {
         const ratio = Math.min(MAX / w, MAX / h);
-        w = Math.round(w * ratio);
-        h = Math.round(h * ratio);
+        w = Math.round(w * ratio); h = Math.round(h * ratio);
       }
       const canvas = document.createElement('canvas');
       canvas.width = w; canvas.height = h;
       canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-      const compressed = canvas.toDataURL('image/jpeg', 0.75);
-      ev.mapImage = compressed;
-      ev.mapPins = ev.mapPins || [];
-      try { saveData(events); } catch (err) { console.warn('map image too large to save', err); }
-      mapInitialized = false;
-      renderMap(ev);
+      canvas.toBlob((blob) => {
+        saveMapImageToDB(ev.id, blob).then(() => {
+          ev.hasMapImage = true;
+          delete ev.mapImage;
+          ev.mapPins = ev.mapPins || [];
+          saveData(events);
+          setUploadState('success');
+          mapInitialized = false;
+          setTimeout(() => renderMap(ev), 900);
+        }).catch((err) => {
+          console.error('saveMapImageToDB error', err);
+          setUploadState('error', '保存に失敗しました');
+        });
+      }, 'image/jpeg', 0.75);
     };
     img.src = re.result;
   };
   reader.readAsDataURL(file);
-  e.target.value = '';
 }

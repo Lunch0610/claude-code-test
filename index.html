@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>同人イベントスケジューラー</title>
-  <link rel="stylesheet" href="style.css?v=10">
+  <link rel="stylesheet" href="style.css?v=12">
 </head>
 <body>
   <div id="app">
@@ -197,12 +197,31 @@
         <!-- マップタブ -->
         <div id="tab-map" class="tab-content">
           <div id="map-upload-area" class="card map-upload-card">
-            <div class="empty-state">
-              <div class="empty-icon">&#128506;</div>
-              <p>配置図をアップロード</p>
-              <p class="text-muted">画像を選択してピンで場所をメモできます</p>
-              <button class="btn-primary" id="btn-upload-map" style="margin-top:12px">画像を選択</button>
-              <input type="file" id="input-map-file" accept="image/*" style="display:none">
+            <!-- 通常状態 -->
+            <div class="upload-state-normal">
+              <div class="upload-dropzone" id="map-dropzone">
+                <div class="upload-drop-icon">&#128506;</div>
+                <p class="upload-drop-title">配置図をアップロード</p>
+                <p class="text-muted">画像を選択してピンで場所をメモできます</p>
+                <button class="btn-primary upload-select-btn" id="btn-upload-map">&#128247; 画像を選択</button>
+                <input type="file" id="input-map-file" accept="image/*" style="display:none">
+              </div>
+            </div>
+            <!-- ロード中 -->
+            <div class="upload-state-loading">
+              <div class="upload-spinner"></div>
+              <p class="upload-state-text">処理中...</p>
+            </div>
+            <!-- 成功 -->
+            <div class="upload-state-success">
+              <div class="upload-result-icon success-icon">&#10003;</div>
+              <p class="upload-state-text">アップロード完了</p>
+            </div>
+            <!-- エラー -->
+            <div class="upload-state-error">
+              <div class="upload-result-icon error-icon">&#10007;</div>
+              <p class="upload-state-text">エラーが発生しました</p>
+              <p class="upload-error-msg text-muted"></p>
             </div>
           </div>
           <div id="map-container-card" class="card map-container-card hidden">
@@ -556,6 +575,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=11"></script>
+  <script src="app.js?v=12"></script>
 </body>
 </html>
