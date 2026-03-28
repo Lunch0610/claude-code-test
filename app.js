@@ -1206,6 +1206,7 @@ function renderMap(ev) {
       c.width = tmpImg.width; c.height = tmpImg.height;
       c.getContext('2d').drawImage(tmpImg, 0, 0);
       c.toBlob((blob) => {
+        if (!blob) { setUploadState('error', '移行に失敗しました'); return; }
         saveMapImageToDB(ev.id, blob).then(() => {
           ev.hasMapImage = true;
           delete ev.mapImage;
@@ -1522,37 +1523,39 @@ function loadMapImage(e, ev) {
   e.target.value = '';
   setUploadState('loading');
 
-  const reader = new FileReader();
-  reader.onerror = () => setUploadState('error', 'ファイルの読み込みに失敗しました');
-  reader.onload = (re) => {
-    const img = new Image();
-    img.onerror = () => setUploadState('error', '画像の読み込みに失敗しました');
-    img.onload = () => {
-      const MAX = 2400;
-      let w = img.width, h = img.height;
-      if (w > MAX || h > MAX) {
-        const ratio = Math.min(MAX / w, MAX / h);
-        w = Math.round(w * ratio); h = Math.round(h * ratio);
-      }
-      const canvas = document.createElement('canvas');
-      canvas.width = w; canvas.height = h;
-      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-      canvas.toBlob((blob) => {
-        saveMapImageToDB(ev.id, blob).then(() => {
-          ev.hasMapImage = true;
-          delete ev.mapImage;
-          ev.mapPins = ev.mapPins || [];
-          saveData(events);
-          setUploadState('success');
-          mapInitialized = false;
-          setTimeout(() => renderMap(ev), 900);
-        }).catch((err) => {
-          console.error('saveMapImageToDB error', err);
-          setUploadState('error', '保存に失敗しました');
-        });
-      }, 'image/jpeg', 0.75);
-    };
-    img.src = re.result;
+  // URL.createObjectURL を使用 (iOS Safariでメモリ効率が良い)
+  const objectURL = URL.createObjectURL(file);
+  const img = new Image();
+  img.onerror = () => {
+    URL.revokeObjectURL(objectURL);
+    setUploadState('error', '画像の読み込みに失敗しました');
   };
-  reader.readAsDataURL(file);
+  img.onload = () => {
+    URL.revokeObjectURL(objectURL);
+    const MAX = 2400;
+    let w = img.width, h = img.height;
+    if (w > MAX || h > MAX) {
+      const ratio = Math.min(MAX / w, MAX / h);
+      w = Math.round(w * ratio); h = Math.round(h * ratio);
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+    canvas.toBlob((blob) => {
+      if (!blob) { setUploadState('error', '画像の変換に失敗しました'); return; }
+      saveMapImageToDB(ev.id, blob).then(() => {
+        ev.hasMapImage = true;
+        delete ev.mapImage;
+        ev.mapPins = ev.mapPins || [];
+        saveData(events);
+        setUploadState('success');
+        mapInitialized = false;
+        setTimeout(() => renderMap(ev), 900);
+      }).catch((err) => {
+        console.error('saveMapImageToDB error', err);
+        setUploadState('error', '保存に失敗しました');
+      });
+    }, 'image/jpeg', 0.75);
+  };
+  img.src = objectURL;
 }
