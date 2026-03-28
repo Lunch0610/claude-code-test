@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>同人イベントスケジューラー</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <!-- ヘッダー -->
+    <header class="header">
+      <div class="header-inner">
+        <button id="btn-back" class="btn-back hidden" aria-label="戻る">&#8592;</button>
+        <h1 id="header-title">同人イベントスケジューラー</h1>
+        <button id="btn-add-event" class="btn-primary">＋ イベント追加</button>
+      </div>
+    </header>
+
+    <!-- イベント一覧 -->
+    <main id="view-list" class="view">
+      <div class="container">
+        <div id="event-list" class="event-list"></div>
+        <div id="empty-state" class="empty-state hidden">
+          <div class="empty-icon">&#128196;</div>
+          <p>まだイベントが登録されていません</p>
+          <p class="text-muted">「＋ イベント追加」から最初のイベントを登録しましょう</p>
+        </div>
+      </div>
+    </main>
+
+    <!-- イベント詳細 -->
+    <main id="view-detail" class="view hidden">
+      <div class="container">
+        <div class="tabs">
+          <button class="tab active" data-tab="overview">概要</button>
+          <button class="tab" data-tab="tasks">タスク</button>
+          <button class="tab" data-tab="items">頒布物</button>
+          <button class="tab" data-tab="schedule">当日</button>
+          <button class="tab" data-tab="budget">収支</button>
+        </div>
+
+        <!-- 概要タブ -->
+        <div id="tab-overview" class="tab-content active">
+          <div class="card">
+            <div class="event-header-detail">
+              <div id="detail-status-badge" class="status-badge"></div>
+              <div class="event-actions">
+                <button id="btn-edit-event" class="btn-secondary btn-sm">編集</button>
+                <button id="btn-delete-event" class="btn-danger btn-sm">削除</button>
+              </div>
+            </div>
+            <div class="detail-grid">
+              <div class="detail-item">
+                <span class="detail-label">イベント名</span>
+                <span id="detail-name" class="detail-value"></span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">開催日</span>
+                <span id="detail-date" class="detail-value"></span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">会場</span>
+                <span id="detail-venue" class="detail-value"></span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">スペース番号</span>
+                <span id="detail-space" class="detail-value"></span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">搬入時刻</span>
+                <span id="detail-setup-time" class="detail-value"></span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">メモ</span>
+                <span id="detail-note" class="detail-value"></span>
+              </div>
+            </div>
+          </div>
+          <div class="card summary-card">
+            <h3>サマリー</h3>
+            <div class="summary-grid">
+              <div class="summary-item">
+                <span class="summary-num" id="summary-tasks">0/0</span>
+                <span class="summary-label">タスク完了</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-num" id="summary-items">0</span>
+                <span class="summary-label">頒布物種類</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-num" id="summary-profit"></span>
+                <span class="summary-label">収支</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- タスクタブ -->
+        <div id="tab-tasks" class="tab-content">
+          <div class="card">
+            <div class="section-header">
+              <h3>事前タスク</h3>
+              <button class="btn-secondary btn-sm" id="btn-add-task">＋ 追加</button>
+            </div>
+            <div id="task-list" class="task-list"></div>
+            <div id="task-empty" class="empty-inline hidden">タスクがありません</div>
+          </div>
+        </div>
+
+        <!-- 頒布物タブ -->
+        <div id="tab-items" class="tab-content">
+          <div class="card">
+            <div class="section-header">
+              <h3>頒布物リスト</h3>
+              <button class="btn-secondary btn-sm" id="btn-add-item">＋ 追加</button>
+            </div>
+            <div id="item-list" class="item-list"></div>
+            <div id="item-empty" class="empty-inline hidden">頒布物がありません</div>
+            <div id="item-total" class="item-total hidden">
+              <span>合計持込部数：</span><span id="item-total-count" class="total-num">0</span>部
+            </div>
+          </div>
+        </div>
+
+        <!-- 当日スケジュールタブ -->
+        <div id="tab-schedule" class="tab-content">
+          <div class="card">
+            <div class="section-header">
+              <h3>当日タイムライン</h3>
+              <button class="btn-secondary btn-sm" id="btn-add-schedule">＋ 追加</button>
+            </div>
+            <div id="schedule-list" class="schedule-list"></div>
+            <div id="schedule-empty" class="empty-inline hidden">スケジュールがありません</div>
+          </div>
+        </div>
+
+        <!-- 収支タブ -->
+        <div id="tab-budget" class="tab-content">
+          <div class="card">
+            <div class="section-header">
+              <h3>支出</h3>
+              <button class="btn-secondary btn-sm" id="btn-add-expense">＋ 追加</button>
+            </div>
+            <div id="expense-list" class="budget-list"></div>
+            <div id="expense-empty" class="empty-inline hidden">支出がありません</div>
+          </div>
+          <div class="card">
+            <div class="section-header">
+              <h3>収入</h3>
+              <button class="btn-secondary btn-sm" id="btn-add-income">＋ 追加</button>
+            </div>
+            <div id="income-list" class="budget-list"></div>
+            <div id="income-empty" class="empty-inline hidden">収入がありません</div>
+          </div>
+          <div class="card budget-summary-card">
+            <div class="budget-row">
+              <span>総収入</span>
+              <span id="total-income" class="income-text">¥0</span>
+            </div>
+            <div class="budget-row">
+              <span>総支出</span>
+              <span id="total-expense" class="expense-text">¥0</span>
+            </div>
+            <div class="budget-row budget-total">
+              <span>収支</span>
+              <span id="total-profit">¥0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- モーダル: イベント追加/編集 -->
+  <div id="modal-event" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modal-event-title">イベント追加</h2>
+        <button class="modal-close" data-modal="modal-event">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="input-event-name">イベント名 <span class="required">*</span></label>
+          <input type="text" id="input-event-name" placeholder="例：コミックマーケット104">
+        </div>
+        <div class="form-group">
+          <label for="input-event-date">開催日 <span class="required">*</span></label>
+          <input type="date" id="input-event-date">
+        </div>
+        <div class="form-group">
+          <label for="input-event-venue">会場</label>
+          <input type="text" id="input-event-venue" placeholder="例：東京ビッグサイト">
+        </div>
+        <div class="form-group">
+          <label for="input-event-space">スペース番号</label>
+          <input type="text" id="input-event-space" placeholder="例：東L-01a">
+        </div>
+        <div class="form-group">
+          <label for="input-event-setup">搬入時刻</label>
+          <input type="time" id="input-event-setup">
+        </div>
+        <div class="form-group">
+          <label for="input-event-note">メモ</label>
+          <textarea id="input-event-note" rows="3" placeholder="自由メモ"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" data-modal="modal-event">キャンセル</button>
+        <button class="btn-primary" id="btn-save-event">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- モーダル: タスク追加 -->
+  <div id="modal-task" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>タスク追加</h2>
+        <button class="modal-close" data-modal="modal-task">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="input-task-name">タスク名 <span class="required">*</span></label>
+          <input type="text" id="input-task-name" placeholder="例：原稿完成、入稿、製本確認">
+        </div>
+        <div class="form-group">
+          <label for="input-task-due">期限</label>
+          <input type="date" id="input-task-due">
+        </div>
+        <div class="form-group">
+          <label for="input-task-category">カテゴリ</label>
+          <select id="input-task-category">
+            <option value="manuscript">原稿</option>
+            <option value="printing">印刷・製本</option>
+            <option value="preparation">準備</option>
+            <option value="application">申込</option>
+            <option value="other">その他</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" data-modal="modal-task">キャンセル</button>
+        <button class="btn-primary" id="btn-save-task">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- モーダル: 頒布物追加 -->
+  <div id="modal-item" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>頒布物追加</h2>
+        <button class="modal-close" data-modal="modal-item">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="input-item-name">タイトル <span class="required">*</span></label>
+          <input type="text" id="input-item-name" placeholder="例：新刊A">
+        </div>
+        <div class="form-group">
+          <label for="input-item-type">種別</label>
+          <select id="input-item-type">
+            <option value="manga">漫画</option>
+            <option value="novel">小説</option>
+            <option value="illust">イラスト集</option>
+            <option value="goods">グッズ</option>
+            <option value="other">その他</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="input-item-price">頒布価格（円）</label>
+          <input type="number" id="input-item-price" min="0" placeholder="例：500">
+        </div>
+        <div class="form-group">
+          <label for="input-item-stock">持込部数</label>
+          <input type="number" id="input-item-stock" min="0" placeholder="例：30">
+        </div>
+        <div class="form-group">
+          <label for="input-item-sold">頒布済み部数</label>
+          <input type="number" id="input-item-sold" min="0" placeholder="0">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" data-modal="modal-item">キャンセル</button>
+        <button class="btn-primary" id="btn-save-item">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- モーダル: スケジュール追加 -->
+  <div id="modal-schedule" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>スケジュール追加</h2>
+        <button class="modal-close" data-modal="modal-schedule">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="input-sched-time">時刻 <span class="required">*</span></label>
+          <input type="time" id="input-sched-time">
+        </div>
+        <div class="form-group">
+          <label for="input-sched-title">内容 <span class="required">*</span></label>
+          <input type="text" id="input-sched-title" placeholder="例：設営開始、開場、撤収">
+        </div>
+        <div class="form-group">
+          <label for="input-sched-note">メモ</label>
+          <input type="text" id="input-sched-note" placeholder="補足情報">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" data-modal="modal-schedule">キャンセル</button>
+        <button class="btn-primary" id="btn-save-schedule">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- モーダル: 収支追加 -->
+  <div id="modal-budget" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modal-budget-title">支出追加</h2>
+        <button class="modal-close" data-modal="modal-budget">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="input-budget-name">項目名 <span class="required">*</span></label>
+          <input type="text" id="input-budget-name" placeholder="例：印刷費、参加費、交通費">
+        </div>
+        <div class="form-group">
+          <label for="input-budget-amount">金額（円） <span class="required">*</span></label>
+          <input type="number" id="input-budget-amount" min="0" placeholder="例：10000">
+        </div>
+        <div class="form-group">
+          <label for="input-budget-category">カテゴリ</label>
+          <select id="input-budget-category">
+            <option value="printing">印刷費</option>
+            <option value="fee">参加費</option>
+            <option value="transport">交通費</option>
+            <option value="hotel">宿泊費</option>
+            <option value="material">材料費</option>
+            <option value="sales">頒布収入</option>
+            <option value="other">その他</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" data-modal="modal-budget">キャンセル</button>
+        <button class="btn-primary" id="btn-save-budget">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 確認ダイアログ -->
+  <div id="modal-confirm" class="modal-overlay hidden">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h2>確認</h2>
+      </div>
+      <div class="modal-body">
+        <p id="confirm-message">本当に削除しますか？</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" id="btn-confirm-cancel">キャンセル</button>
+        <button class="btn-danger" id="btn-confirm-ok">削除</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
