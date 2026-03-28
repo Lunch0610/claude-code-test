@@ -1213,7 +1213,7 @@ function renderMap(ev) {
           saveData(events);
           renderMap(ev);
         }).catch(() => setUploadState('error', '移行に失敗しました'));
-      }, 'image/jpeg', 0.9);
+      }, 'image/png');
     };
     tmpImg.src = base64;
     return;
@@ -1344,17 +1344,27 @@ function initMapInteraction(ev) {
 
   viewport.addEventListener('touchend', (e) => {
     if (e.changedTouches.length === 1 && e.touches.length === 0) {
-      const dx = Math.abs(e.changedTouches[0].clientX - mapTouchStartX);
-      const dy = Math.abs(e.changedTouches[0].clientY - mapTouchStartY);
+      const touch = e.changedTouches[0];
+      const dx = Math.abs(touch.clientX - mapTouchStartX);
+      const dy = Math.abs(touch.clientY - mapTouchStartY);
       const dt = Date.now() - mapTouchStartTime;
-      if (dx < 8 && dy < 8 && dt < 250 && mapPinMode) {
-        const rect = document.getElementById('map-inner').getBoundingClientRect();
-        const x = ((e.changedTouches[0].clientX - rect.left) / rect.width) * 100;
-        const y = ((e.changedTouches[0].clientY - rect.top) / rect.height) * 100;
-        if (x >= 0 && x <= 100 && y >= 0 && y <= 100) {
-          pendingPinX = x;
-          pendingPinY = y;
-          openPinSelectModal(ev);
+      if (dx < 8 && dy < 8 && dt < 250) {
+        // タップ先がピンかどうか判定
+        const target = document.elementFromPoint(touch.clientX, touch.clientY);
+        const pinEl = target && target.closest('.map-pin');
+        if (pinEl && !mapPinMode) {
+          // ピンをタップ → 情報表示
+          showPinInfo(ev, pinEl.dataset.pinId);
+        } else if (!pinEl && mapPinMode) {
+          // ピンモードで空白タップ → 新規ピン追加
+          const rect = document.getElementById('map-inner').getBoundingClientRect();
+          const x = ((touch.clientX - rect.left) / rect.width) * 100;
+          const y = ((touch.clientY - rect.top) / rect.height) * 100;
+          if (x >= 0 && x <= 100 && y >= 0 && y <= 100) {
+            pendingPinX = x;
+            pendingPinY = y;
+            openPinSelectModal(ev);
+          }
         }
       }
     }
@@ -1555,7 +1565,7 @@ function loadMapImage(e, ev) {
         console.error('saveMapImageToDB error', err);
         setUploadState('error', '保存に失敗しました');
       });
-    }, 'image/jpeg', 0.75);
+    }, 'image/png');
   };
   img.src = objectURL;
 }
