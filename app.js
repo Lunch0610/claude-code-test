@@ -1348,7 +1348,7 @@ function initMapInteraction(ev) {
       const dx = Math.abs(touch.clientX - mapTouchStartX);
       const dy = Math.abs(touch.clientY - mapTouchStartY);
       const dt = Date.now() - mapTouchStartTime;
-      if (dx < 8 && dy < 8 && dt < 250) {
+      if (dx < 20 && dy < 20 && dt < 400) {
         // タップ先がピンかどうか判定
         const target = document.elementFromPoint(touch.clientX, touch.clientY);
         const pinEl = target && target.closest('.map-pin');
