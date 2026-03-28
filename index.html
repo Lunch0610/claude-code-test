@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>同人イベントスケジューラー</title>
-  <link rel="stylesheet" href="style.css?v=4">
+  <link rel="stylesheet" href="style.css?v=5">
 </head>
 <body>
   <div id="app">
@@ -197,8 +197,12 @@
           <input type="text" id="input-event-space" placeholder="例：東L-01a">
         </div>
         <div class="form-group">
-          <label for="input-event-setup">サークル参加者入場時刻</label>
-          <input type="text" id="input-event-setup" placeholder="例：10:00-11:30">
+          <label>サークル参加者入場時刻</label>
+          <div class="time-range">
+            <input type="time" id="input-event-setup-from">
+            <span class="time-range-sep">〜</span>
+            <input type="time" id="input-event-setup-to">
+          </div>
         </div>
         <div class="form-group">
           <label for="input-event-note">メモ</label>
@@ -368,6 +372,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=4"></script>
+  <script src="app.js?v=5"></script>
 </body>
 </html>

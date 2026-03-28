@@ -679,6 +679,22 @@ input:focus, select:focus, textarea:focus {
   box-shadow: 0 0 0 3px rgba(232, 93, 157, 0.1);
 }
 
+.time-range {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.time-range input[type="time"] {
+  flex: 1;
+}
+
+.time-range-sep {
+  color: var(--text-muted);
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
 textarea { resize: vertical; }
 
 /* ===== レスポンシブ ===== */

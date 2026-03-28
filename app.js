@@ -155,7 +155,10 @@ function renderDetail(ev) {
   document.getElementById('detail-date').textContent = formatDate(ev.date);
   document.getElementById('detail-venue').textContent = ev.venue || '未設定';
   document.getElementById('detail-space').textContent = ev.space || '未設定';
-  document.getElementById('detail-setup-time').textContent = ev.setupTime || '未設定';
+  const from = ev.setupTimeFrom || '';
+  const to = ev.setupTimeTo || '';
+  document.getElementById('detail-setup-time').textContent =
+    from && to ? `${from} 〜 ${to}` : from || to || '未設定';
   document.getElementById('detail-note').textContent = ev.note || 'なし';
 
   renderSummary(ev);
@@ -460,7 +463,8 @@ function saveEvent() {
       ev.date = date;
       ev.venue = document.getElementById('input-event-venue').value.trim();
       ev.space = document.getElementById('input-event-space').value.trim();
-      ev.setupTime = document.getElementById('input-event-setup').value;
+      ev.setupTimeFrom = document.getElementById('input-event-setup-from').value;
+      ev.setupTimeTo = document.getElementById('input-event-setup-to').value;
       ev.note = document.getElementById('input-event-note').value.trim();
     }
   } else {
@@ -470,7 +474,8 @@ function saveEvent() {
       date,
       venue: document.getElementById('input-event-venue').value.trim(),
       space: document.getElementById('input-event-space').value.trim(),
-      setupTime: document.getElementById('input-event-setup').value,
+      setupTimeFrom: document.getElementById('input-event-setup-from').value,
+      setupTimeTo: document.getElementById('input-event-setup-to').value,
       note: document.getElementById('input-event-note').value.trim(),
       tasks: [],
       items: [],
@@ -547,7 +552,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-add-event').addEventListener('click', () => {
     editingEventId = null;
     document.getElementById('modal-event-title').textContent = 'イベント追加';
-    clearForm('input-event-name', 'input-event-date', 'input-event-venue', 'input-event-space', 'input-event-setup', 'input-event-note');
+    clearForm('input-event-name', 'input-event-date', 'input-event-venue', 'input-event-space', 'input-event-setup-from', 'input-event-setup-to', 'input-event-note');
     openModal('modal-event');
   });
 
@@ -561,7 +566,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('input-event-date').value = ev.date || '';
     document.getElementById('input-event-venue').value = ev.venue || '';
     document.getElementById('input-event-space').value = ev.space || '';
-    document.getElementById('input-event-setup').value = ev.setupTime || '';
+    document.getElementById('input-event-setup-from').value = ev.setupTimeFrom || '';
+    document.getElementById('input-event-setup-to').value = ev.setupTimeTo || '';
     document.getElementById('input-event-note').value = ev.note || '';
     openModal('modal-event');
   });
@@ -730,7 +736,8 @@ document.addEventListener('DOMContentLoaded', () => {
       date: dateStr,
       venue: '東京ビッグサイト',
       space: '東L-01a',
-      setupTime: '10:00-11:30',
+      setupTimeFrom: '10:00',
+      setupTimeTo: '11:30',
       note: 'はじめてのイベント参加！',
       tasks: [],
       items: [
