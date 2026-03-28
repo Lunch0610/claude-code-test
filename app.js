@@ -1427,11 +1427,27 @@ function loadMapImage(e, ev) {
   if (!file) return;
   const reader = new FileReader();
   reader.onload = (re) => {
-    ev.mapImage = re.result;
-    ev.mapPins = ev.mapPins || [];
-    saveData(events);
-    mapInitialized = false;
-    renderMap(ev);
+    // canvasで圧縮してからlocalStorageに保存
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 2400;
+      let w = img.width, h = img.height;
+      if (w > MAX || h > MAX) {
+        const ratio = Math.min(MAX / w, MAX / h);
+        w = Math.round(w * ratio);
+        h = Math.round(h * ratio);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      const compressed = canvas.toDataURL('image/jpeg', 0.75);
+      ev.mapImage = compressed;
+      ev.mapPins = ev.mapPins || [];
+      try { saveData(events); } catch (err) { console.warn('map image too large to save', err); }
+      mapInitialized = false;
+      renderMap(ev);
+    };
+    img.src = re.result;
   };
   reader.readAsDataURL(file);
   e.target.value = '';
