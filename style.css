@@ -879,6 +879,139 @@ textarea { resize: vertical; }
   color: var(--text-muted);
 }
 
+/* ===== 欲しいものリスト ===== */
+.wish-list {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.wish-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.wish-bought {
+  opacity: 0.5;
+}
+
+.wish-bought .wish-title {
+  text-decoration: line-through;
+}
+
+.wish-check {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 2px solid var(--border);
+  background: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 10px;
+  transition: all 0.15s;
+}
+
+.wish-check.checked {
+  border-color: var(--success);
+  background: var(--success);
+  color: white;
+}
+
+.wish-release {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.wish-release.new { background: #fff0c0; color: #a07000; }
+.wish-release.existing { background: #e8e8e8; color: #555; }
+
+.wish-type {
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.wish-title {
+  flex: 1;
+  font-weight: 500;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wish-price {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary);
+  white-space: nowrap;
+}
+
+.wish-memo-text {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 80px;
+}
+
+.btn-add-wish {
+  margin-top: 6px;
+  background: none;
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  width: 100%;
+  padding: 5px;
+  font-size: 12px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-add-wish:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+/* トグルボタン */
+.toggle-group {
+  display: flex;
+  gap: 8px;
+}
+
+.toggle-btn {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: white;
+  font-size: 14px;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: all 0.15s;
+}
+
+.toggle-btn.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+  font-weight: 600;
+}
+
 /* ===== レスポンシブ ===== */
 @media (max-width: 480px) {
   .summary-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }

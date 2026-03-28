@@ -771,6 +771,36 @@ document.addEventListener('DOMContentLoaded', () => {
     openModal('modal-import');
   });
 
+  // ===== 欲しいものモーダル =====
+  document.querySelectorAll('.toggle-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentWishRelease = btn.dataset.release;
+      document.querySelectorAll('.toggle-btn').forEach(b => b.classList.toggle('active', b === btn));
+    });
+  });
+
+  document.getElementById('btn-save-wish').addEventListener('click', () => {
+    const title = document.getElementById('input-wish-title').value.trim();
+    if (!title) { alert('タイトルを入力してください'); return; }
+    const ev = events.find(e => e.id === currentEventId);
+    if (!ev) return;
+    const c = (ev.circles || []).find(c => c.id === currentWishCircleId);
+    if (!c) return;
+    if (!c.wishItems) c.wishItems = [];
+    c.wishItems.push({
+      id: genId(),
+      release: currentWishRelease,
+      title,
+      type: document.getElementById('input-wish-type').value,
+      price: document.getElementById('input-wish-price').value,
+      memo: document.getElementById('input-wish-memo').value.trim(),
+      bought: false
+    });
+    saveData(events);
+    closeModal('modal-wish');
+    renderShopping(ev);
+  });
+
   document.getElementById('input-import-text').addEventListener('input', () => {
     const text = document.getElementById('input-import-text').value;
     const circles = parseCircleList(text);
@@ -922,7 +952,8 @@ function renderShopping(ev) {
         </div>
         <div class="circle-rep">${escHtml(c.rep)}</div>
         ${links ? `<div class="circle-links">${links}</div>` : ''}
-        ${c.memo ? `<div class="circle-memo">${escHtml(c.memo)}</div>` : ''}
+        ${renderWishItems(c)}
+        <button class="btn-add-wish" data-add-wish="${c.id}">＋ 欲しいものを追加</button>
       </div>
       <div class="circle-actions">
         <button class="btn-star ${c.priority ? 'active' : ''}" data-star-id="${c.id}" title="優先">&#9733;</button>
@@ -949,6 +980,29 @@ function renderShopping(ev) {
       });
     });
   });
+  // 欲しいもの追加
+  list.querySelectorAll('[data-add-wish]').forEach(el => {
+    el.addEventListener('click', () => openWishModal(ev, el.dataset.addWish));
+  });
+  // 欲しいもの購入チェック
+  list.querySelectorAll('[data-wish-check]').forEach(el => {
+    el.addEventListener('click', () => {
+      const c = (ev.circles || []).find(c => (c.wishItems || []).some(w => w.id === el.dataset.wishCheck));
+      if (!c) return;
+      const w = c.wishItems.find(w => w.id === el.dataset.wishCheck);
+      if (w) { w.bought = !w.bought; saveData(events); renderShopping(ev); }
+    });
+  });
+  // 欲しいもの削除
+  list.querySelectorAll('[data-delete-wish]').forEach(el => {
+    el.addEventListener('click', () => {
+      const c = (ev.circles || []).find(c => (c.wishItems || []).some(w => w.id === el.dataset.deleteWish));
+      if (!c) return;
+      c.wishItems = c.wishItems.filter(w => w.id !== el.dataset.deleteWish);
+      saveData(events);
+      renderShopping(ev);
+    });
+  });
 }
 
 function toggleCircleVisited(ev, id) {
@@ -965,4 +1019,41 @@ function toggleCirclePriority(ev, id) {
   c.priority = !c.priority;
   saveData(events);
   renderShopping(ev);
+}
+
+// ===== 欲しいもの =====
+let currentWishCircleId = null;
+let currentWishRelease = '新刊';
+
+function openWishModal(ev, circleId) {
+  const c = (ev.circles || []).find(c => c.id === circleId);
+  if (!c) return;
+  currentWishCircleId = circleId;
+  currentWishRelease = '新刊';
+  document.getElementById('modal-wish-circle-name').textContent = c.name;
+  document.getElementById('input-wish-title').value = '';
+  document.getElementById('input-wish-price').value = '';
+  document.getElementById('input-wish-memo').value = '';
+  document.getElementById('input-wish-type').selectedIndex = 0;
+  document.querySelectorAll('.toggle-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.release === '新刊');
+  });
+  openModal('modal-wish');
+}
+
+function renderWishItems(c) {
+  const items = c.wishItems || [];
+  if (items.length === 0) return '';
+  return `<div class="wish-list">${items.map(w => `
+    <div class="wish-item ${w.bought ? 'wish-bought' : ''}" data-wish-id="${w.id}">
+      <div class="wish-check ${w.bought ? 'checked' : ''}" data-wish-check="${w.id}">
+        ${w.bought ? '&#10003;' : ''}
+      </div>
+      <span class="wish-release ${w.release === '新刊' ? 'new' : 'existing'}">${escHtml(w.release)}</span>
+      <span class="wish-type">${escHtml(w.type)}</span>
+      <span class="wish-title">${escHtml(w.title)}</span>
+      ${w.price ? `<span class="wish-price">¥${Number(w.price).toLocaleString()}</span>` : ''}
+      ${w.memo ? `<span class="wish-memo-text">${escHtml(w.memo)}</span>` : ''}
+      <button class="btn-icon danger" data-delete-wish="${w.id}" style="font-size:11px;padding:2px 4px">&#10005;</button>
+    </div>`).join('')}</div>`;
 }
