@@ -1084,6 +1084,171 @@ textarea { resize: vertical; }
   font-weight: 600;
 }
 
+/* ===== マップ ===== */
+.map-upload-card { padding: 0; }
+
+.map-container-card { padding: 12px; }
+
+.map-toolbar {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.map-toolbar .btn-secondary.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+.map-pin-hint {
+  font-size: 12px;
+  color: white;
+  background: var(--primary);
+  text-align: center;
+  padding: 6px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 8px;
+}
+
+.map-viewport {
+  width: 100%;
+  height: 60vh;
+  overflow: hidden;
+  background: #f0f0f0;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  position: relative;
+  cursor: grab;
+  touch-action: none;
+}
+
+.map-viewport:active { cursor: grabbing; }
+
+.map-inner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+  user-select: none;
+}
+
+#map-image {
+  display: block;
+  max-width: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+#map-markers {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.map-pin {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: all;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.map-pin-dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  border: 2px solid white;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.map-pin-dot span { transform: rotate(45deg); display: block; }
+
+.map-pin.wish .map-pin-dot { background: var(--primary); }
+.map-pin.visited .map-pin-dot { background: var(--success); }
+.map-pin.plain .map-pin-dot { background: var(--secondary); }
+
+.map-pin-label {
+  font-size: 9px;
+  font-weight: 700;
+  background: white;
+  border-radius: 3px;
+  padding: 1px 3px;
+  margin-top: 2px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  white-space: nowrap;
+  color: var(--text);
+}
+
+.map-legend {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+  flex-wrap: wrap;
+}
+
+.legend-item { display: flex; align-items: center; gap: 4px; }
+
+.legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1px solid white;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.legend-dot.wish { background: var(--primary); }
+.legend-dot.visited { background: var(--success); }
+.legend-dot.plain { background: var(--secondary); }
+
+/* ピン選択リスト */
+.pin-circle-list {
+  max-height: 50vh;
+  overflow-y: auto;
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pin-circle-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.pin-circle-option:hover { background: var(--primary-light); }
+
+.pin-circle-option .circle-space { font-size: 11px; }
+
+.pin-circle-option-name { font-size: 13px; font-weight: 600; flex: 1; }
+
+.pin-circle-option-badge {
+  font-size: 11px;
+  color: var(--primary);
+}
+
+/* ピン情報モーダル */
+#pin-info-body .wish-list { margin-top: 0; }
+
 /* ===== レスポンシブ ===== */
 @media (max-width: 480px) {
   .summary-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }

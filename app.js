@@ -167,6 +167,8 @@ function renderDetail(ev) {
   renderSchedule(ev);
   renderBudget(ev);
   renderShopping(ev);
+  renderMap(ev);
+  setupMapControls(ev);
 }
 
 function renderSummary(ev) {
@@ -1137,4 +1139,300 @@ function renderWishItems(c) {
   }).join('')}
   ${circleTotal > 0 ? `<div class="circle-total">小計 ¥${circleTotal.toLocaleString()}</div>` : ''}
   </div>`;
+}
+
+// ===== マップ機能 =====
+let mapScale = 1, mapPanX = 0, mapPanY = 0;
+let mapTouchStartX = 0, mapTouchStartY = 0, mapTouchStartTime = 0;
+let mapLastPanX = 0, mapLastPanY = 0, mapLastDist = 0;
+let mapPinMode = false;
+let pendingPinX = 0, pendingPinY = 0;
+let viewingPinId = null;
+let mapInitialized = false;
+
+function renderMap(ev) {
+  const uploadArea = document.getElementById('map-upload-area');
+  const containerCard = document.getElementById('map-container-card');
+
+  if (ev.mapImage) {
+    uploadArea.classList.add('hidden');
+    containerCard.classList.remove('hidden');
+    const img = document.getElementById('map-image');
+    if (img.src !== ev.mapImage) {
+      img.src = ev.mapImage;
+      img.onload = () => {
+        document.getElementById('map-inner').style.width = img.naturalWidth + 'px';
+        document.getElementById('map-inner').style.height = img.naturalHeight + 'px';
+        mapScale = Math.min(
+          document.getElementById('map-viewport').clientWidth / img.naturalWidth,
+          document.getElementById('map-viewport').clientHeight / img.naturalHeight
+        );
+        mapPanX = 0; mapPanY = 0;
+        applyMapTransform();
+        renderMapMarkers(ev);
+      };
+    } else {
+      renderMapMarkers(ev);
+    }
+    if (!mapInitialized) initMapInteraction(ev);
+  } else {
+    uploadArea.classList.remove('hidden');
+    containerCard.classList.add('hidden');
+  }
+}
+
+function applyMapTransform() {
+  document.getElementById('map-inner').style.transform =
+    `translate(${mapPanX}px, ${mapPanY}px) scale(${mapScale})`;
+}
+
+function renderMapMarkers(ev) {
+  const markersEl = document.getElementById('map-markers');
+  const pins = ev.mapPins || [];
+  const circles = ev.circles || [];
+
+  markersEl.innerHTML = pins.map(pin => {
+    const c = circles.find(c => c.id === pin.circleId);
+    if (!c) return '';
+    const hasWish = (c.wishItems || []).length > 0;
+    const cls = c.visited ? 'visited' : hasWish ? 'wish' : 'plain';
+    const icon = c.visited ? '✓' : hasWish ? '★' : '●';
+    return `<div class="map-pin ${cls}" style="left:${pin.x}%;top:${pin.y}%" data-pin-id="${pin.id}">
+      <div class="map-pin-dot"><span>${icon}</span></div>
+      <div class="map-pin-label">${escHtml(c.space)}</div>
+    </div>`;
+  }).join('');
+
+  markersEl.querySelectorAll('.map-pin').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (mapPinMode) return;
+      showPinInfo(ev, el.dataset.pinId);
+    });
+  });
+}
+
+function initMapInteraction(ev) {
+  mapInitialized = true;
+  const viewport = document.getElementById('map-viewport');
+
+  viewport.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    if (e.touches.length === 1) {
+      mapTouchStartX = e.touches[0].clientX;
+      mapTouchStartY = e.touches[0].clientY;
+      mapTouchStartTime = Date.now();
+      mapLastPanX = mapPanX;
+      mapLastPanY = mapPanY;
+      mapLastDist = 0;
+    } else if (e.touches.length === 2) {
+      mapLastDist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      mapLastPanX = mapPanX;
+      mapLastPanY = mapPanY;
+    }
+  }, { passive: false });
+
+  viewport.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    if (e.touches.length === 1) {
+      mapPanX = mapLastPanX + (e.touches[0].clientX - mapTouchStartX);
+      mapPanY = mapLastPanY + (e.touches[0].clientY - mapTouchStartY);
+      applyMapTransform();
+    } else if (e.touches.length === 2) {
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      if (mapLastDist > 0) {
+        const ratio = dist / mapLastDist;
+        const newScale = Math.min(10, Math.max(0.2, mapScale * ratio));
+        const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+        const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        const rect = viewport.getBoundingClientRect();
+        const ox = midX - rect.left;
+        const oy = midY - rect.top;
+        mapPanX = ox - (ox - mapPanX) * (newScale / mapScale);
+        mapPanY = oy - (oy - mapPanY) * (newScale / mapScale);
+        mapScale = newScale;
+        mapLastDist = dist;
+        applyMapTransform();
+      }
+    }
+  }, { passive: false });
+
+  viewport.addEventListener('touchend', (e) => {
+    if (e.changedTouches.length === 1 && e.touches.length === 0) {
+      const dx = Math.abs(e.changedTouches[0].clientX - mapTouchStartX);
+      const dy = Math.abs(e.changedTouches[0].clientY - mapTouchStartY);
+      const dt = Date.now() - mapTouchStartTime;
+      if (dx < 8 && dy < 8 && dt < 250 && mapPinMode) {
+        const rect = document.getElementById('map-inner').getBoundingClientRect();
+        const x = ((e.changedTouches[0].clientX - rect.left) / rect.width) * 100;
+        const y = ((e.changedTouches[0].clientY - rect.top) / rect.height) * 100;
+        if (x >= 0 && x <= 100 && y >= 0 && y <= 100) {
+          pendingPinX = x;
+          pendingPinY = y;
+          openPinSelectModal(ev);
+        }
+      }
+    }
+  }, { passive: false });
+
+  // PCマウス対応
+  let mouseDown = false, mouseMoveX = 0, mouseMoveY = 0;
+  viewport.addEventListener('mousedown', (e) => {
+    mouseDown = true;
+    mapTouchStartX = e.clientX; mapTouchStartY = e.clientY;
+    mapTouchStartTime = Date.now();
+    mapLastPanX = mapPanX; mapLastPanY = mapPanY;
+    mouseMoveX = 0; mouseMoveY = 0;
+  });
+  viewport.addEventListener('mousemove', (e) => {
+    if (!mouseDown) return;
+    mouseMoveX = e.clientX - mapTouchStartX;
+    mouseMoveY = e.clientY - mapTouchStartY;
+    mapPanX = mapLastPanX + mouseMoveX;
+    mapPanY = mapLastPanY + mouseMoveY;
+    applyMapTransform();
+  });
+  viewport.addEventListener('mouseup', (e) => {
+    if (!mouseDown) return;
+    mouseDown = false;
+    if (Math.abs(mouseMoveX) < 5 && Math.abs(mouseMoveY) < 5 && mapPinMode) {
+      const rect = document.getElementById('map-inner').getBoundingClientRect();
+      const x = ((e.clientX - rect.left) / rect.width) * 100;
+      const y = ((e.clientY - rect.top) / rect.height) * 100;
+      if (x >= 0 && x <= 100 && y >= 0 && y <= 100) {
+        pendingPinX = x; pendingPinY = y;
+        openPinSelectModal(ev);
+      }
+    }
+  });
+  viewport.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? 0.85 : 1.15;
+    const newScale = Math.min(10, Math.max(0.2, mapScale * delta));
+    const rect = viewport.getBoundingClientRect();
+    const ox = e.clientX - rect.left;
+    const oy = e.clientY - rect.top;
+    mapPanX = ox - (ox - mapPanX) * (newScale / mapScale);
+    mapPanY = oy - (oy - mapPanY) * (newScale / mapScale);
+    mapScale = newScale;
+    applyMapTransform();
+  }, { passive: false });
+}
+
+function openPinSelectModal(ev) {
+  const circles = ev.circles || [];
+  const search = document.getElementById('pin-search');
+  search.value = '';
+  renderPinCircleList(ev, '');
+  search.oninput = () => renderPinCircleList(ev, search.value);
+  openModal('modal-pin');
+}
+
+function renderPinCircleList(ev, query) {
+  const circles = ev.circles || [];
+  const q = query.toLowerCase();
+  const filtered = circles.filter(c =>
+    !q || c.name.toLowerCase().includes(q) || c.space.toLowerCase().includes(q)
+  ).slice(0, 60);
+
+  const list = document.getElementById('pin-circle-list');
+  list.innerHTML = filtered.map(c => {
+    const hasWish = (c.wishItems || []).length > 0;
+    const alreadyPinned = (ev.mapPins || []).some(p => p.circleId === c.id);
+    return `<div class="pin-circle-option" data-circle-id="${c.id}">
+      <span class="circle-space">${escHtml(c.space)}</span>
+      <span class="pin-circle-option-name">${escHtml(c.name)}</span>
+      ${hasWish ? '<span class="pin-circle-option-badge">★</span>' : ''}
+      ${alreadyPinned ? '<span style="font-size:11px;color:var(--text-muted)">📍</span>' : ''}
+    </div>`;
+  }).join('');
+
+  list.querySelectorAll('.pin-circle-option').forEach(el => {
+    el.addEventListener('click', () => {
+      if (!ev.mapPins) ev.mapPins = [];
+      ev.mapPins.push({ id: genId(), circleId: el.dataset.circleId, x: pendingPinX, y: pendingPinY });
+      saveData(events);
+      closeModal('modal-pin');
+      renderMapMarkers(ev);
+    });
+  });
+}
+
+function showPinInfo(ev, pinId) {
+  const pin = (ev.mapPins || []).find(p => p.id === pinId);
+  if (!pin) return;
+  const c = (ev.circles || []).find(c => c.id === pin.circleId);
+  if (!c) return;
+  viewingPinId = pinId;
+
+  document.getElementById('pin-info-space').textContent = `${c.space} ${c.name}`;
+  const links = [
+    c.twitter ? `<a class="circle-link" href="${escHtml(c.twitter)}" target="_blank">𝕏 Twitter/X</a>` : '',
+    c.pixiv ? `<a class="circle-link" href="${escHtml(c.pixiv)}" target="_blank">🎨 pixiv</a>` : '',
+  ].filter(Boolean).join('');
+
+  const wishHtml = renderWishItems(c);
+  document.getElementById('pin-info-body').innerHTML =
+    `<div class="circle-rep" style="margin-bottom:8px">${escHtml(c.rep)}</div>` +
+    (links ? `<div class="circle-links" style="margin-bottom:8px">${links}</div>` : '') +
+    (wishHtml || '<p style="color:var(--text-muted);font-size:13px">欲しいものなし</p>');
+
+  openModal('modal-pin-info');
+}
+
+function setupMapControls(ev) {
+  document.getElementById('btn-upload-map').onclick = () =>
+    document.getElementById('input-map-file').click();
+
+  document.getElementById('input-map-file').onchange = (e) => loadMapImage(e, ev);
+  document.getElementById('input-map-file2').onchange = (e) => loadMapImage(e, ev);
+
+  document.getElementById('btn-map-change').onclick = () =>
+    document.getElementById('input-map-file2').click();
+
+  document.getElementById('btn-map-pin-mode').onclick = () => {
+    mapPinMode = !mapPinMode;
+    const btn = document.getElementById('btn-map-pin-mode');
+    btn.classList.toggle('active', mapPinMode);
+    document.getElementById('map-pin-hint').classList.toggle('hidden', !mapPinMode);
+  };
+
+  document.getElementById('btn-map-reset').onclick = () => {
+    const img = document.getElementById('map-image');
+    const viewport = document.getElementById('map-viewport');
+    mapScale = Math.min(
+      viewport.clientWidth / img.naturalWidth,
+      viewport.clientHeight / img.naturalHeight
+    );
+    mapPanX = 0; mapPanY = 0;
+    applyMapTransform();
+  };
+
+  document.getElementById('btn-delete-pin').onclick = () => {
+    ev.mapPins = (ev.mapPins || []).filter(p => p.id !== viewingPinId);
+    saveData(events);
+    closeModal('modal-pin-info');
+    renderMapMarkers(ev);
+  };
+}
+
+function loadMapImage(e, ev) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (re) => {
+    ev.mapImage = re.result;
+    ev.mapPins = ev.mapPins || [];
+    saveData(events);
+    mapInitialized = false;
+    renderMap(ev);
+  };
+  reader.readAsDataURL(file);
+  e.target.value = '';
 }

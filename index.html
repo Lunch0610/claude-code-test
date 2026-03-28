@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>同人イベントスケジューラー</title>
-  <link rel="stylesheet" href="style.css?v=9">
+  <link rel="stylesheet" href="style.css?v=10">
 </head>
 <body>
   <div id="app">
@@ -39,6 +39,7 @@
           <button class="tab" data-tab="schedule">当日</button>
           <button class="tab" data-tab="budget">収支</button>
           <button class="tab" data-tab="shopping">買い物</button>
+          <button class="tab" data-tab="map">マップ</button>
         </div>
 
         <!-- 概要タブ -->
@@ -193,6 +194,39 @@
           </div>
         </div>
 
+        <!-- マップタブ -->
+        <div id="tab-map" class="tab-content">
+          <div id="map-upload-area" class="card map-upload-card">
+            <div class="empty-state">
+              <div class="empty-icon">&#128506;</div>
+              <p>配置図をアップロード</p>
+              <p class="text-muted">画像を選択してピンで場所をメモできます</p>
+              <button class="btn-primary" id="btn-upload-map" style="margin-top:12px">画像を選択</button>
+              <input type="file" id="input-map-file" accept="image/*" style="display:none">
+            </div>
+          </div>
+          <div id="map-container-card" class="card map-container-card hidden">
+            <div class="map-toolbar">
+              <button class="btn-secondary btn-sm" id="btn-map-pin-mode">&#128205; ピン追加</button>
+              <button class="btn-secondary btn-sm" id="btn-map-reset">リセット</button>
+              <button class="btn-secondary btn-sm" id="btn-map-change">&#128247; 変更</button>
+              <input type="file" id="input-map-file2" accept="image/*" style="display:none">
+            </div>
+            <div id="map-pin-hint" class="map-pin-hint hidden">タップした場所にピンを追加します</div>
+            <div class="map-viewport" id="map-viewport">
+              <div class="map-inner" id="map-inner">
+                <img id="map-image" alt="配置図" draggable="false">
+                <div id="map-markers"></div>
+              </div>
+            </div>
+            <div class="map-legend">
+              <span class="legend-item"><span class="legend-dot wish"></span>欲しいもの登録済み</span>
+              <span class="legend-item"><span class="legend-dot visited"></span>訪問済み</span>
+              <span class="legend-item"><span class="legend-dot plain"></span>その他</span>
+            </div>
+          </div>
+        </div>
+
       </div>
     </main>
   </div>
@@ -269,6 +303,38 @@
       <div class="modal-footer">
         <button class="btn-secondary" data-modal="modal-wish">キャンセル</button>
         <button class="btn-primary" id="btn-save-wish">追加</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- モーダル: ピン選択 -->
+  <div id="modal-pin" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>サークルを選択</h2>
+        <button class="modal-close" data-modal="modal-pin">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="text" id="pin-search" placeholder="サークル名・スペース番号で検索">
+        <div id="pin-circle-list" class="pin-circle-list"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" data-modal="modal-pin">キャンセル</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- モーダル: ピン情報 -->
+  <div id="modal-pin-info" class="modal-overlay hidden">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h2 id="pin-info-space"></h2>
+        <button class="modal-close" data-modal="modal-pin-info">&times;</button>
+      </div>
+      <div class="modal-body" id="pin-info-body"></div>
+      <div class="modal-footer">
+        <button class="btn-danger btn-sm" id="btn-delete-pin">ピンを削除</button>
+        <button class="btn-secondary" data-modal="modal-pin-info">閉じる</button>
       </div>
     </div>
   </div>
@@ -490,6 +556,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=9"></script>
+  <script src="app.js?v=10"></script>
 </body>
 </html>
