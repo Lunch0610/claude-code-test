@@ -662,6 +662,7 @@ textarea {
   display: block;
   -webkit-appearance: none;
   appearance: none;
+  text-align: left;
   padding: 10px 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
