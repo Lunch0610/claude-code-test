@@ -1295,102 +1295,140 @@ function initMapInteraction(ev) {
   mapInitialized = true;
   const viewport = document.getElementById('map-viewport');
 
+  // タッチをIDで追跡
+  const activeTouches = new Map();
+
+  // パン状態
+  let panStartX = 0, panStartY = 0, panStartTime = 0;
+  let panOriginX = 0, panOriginY = 0;
+
+  // ピンチ状態（ジェスチャー開始時に固定）
+  let pinchStartDist = 0, pinchStartScale = 0;
+  let pinchOriginPanX = 0, pinchOriginPanY = 0;
+  let pinchMidX = 0, pinchMidY = 0;
+
+  // ピンチ後の誤タップ防止
+  let wasPinching = false;
+
+  function getTouches() {
+    return Array.from(activeTouches.values());
+  }
+
   viewport.addEventListener('touchstart', (e) => {
     e.preventDefault();
-    if (e.touches.length === 1) {
-      mapTouchStartX = e.touches[0].clientX;
-      mapTouchStartY = e.touches[0].clientY;
-      mapTouchStartTime = Date.now();
-      mapLastPanX = mapPanX;
-      mapLastPanY = mapPanY;
-      mapLastDist = 0;
-    } else if (e.touches.length === 2) {
-      mapLastDist = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
-      mapLastPanX = mapPanX;
-      mapLastPanY = mapPanY;
+    for (const t of e.changedTouches) {
+      activeTouches.set(t.identifier, { x: t.clientX, y: t.clientY });
+    }
+    const list = getTouches();
+
+    if (list.length === 1) {
+      panStartX = list[0].x;
+      panStartY = list[0].y;
+      panStartTime = Date.now();
+      panOriginX = mapPanX;
+      panOriginY = mapPanY;
+      wasPinching = false;
+    } else if (list.length === 2) {
+      // ピンチ開始 — 開始時の状態を固定して以降はそこからの比率で計算
+      pinchStartDist = Math.hypot(list[1].x - list[0].x, list[1].y - list[0].y);
+      pinchStartScale = mapScale;
+      pinchOriginPanX = mapPanX;
+      pinchOriginPanY = mapPanY;
+      const rect = viewport.getBoundingClientRect();
+      pinchMidX = (list[0].x + list[1].x) / 2 - rect.left;
+      pinchMidY = (list[0].y + list[1].y) / 2 - rect.top;
+      wasPinching = true;
     }
   }, { passive: false });
 
   viewport.addEventListener('touchmove', (e) => {
     e.preventDefault();
-    if (e.touches.length === 1) {
-      mapPanX = mapLastPanX + (e.touches[0].clientX - mapTouchStartX);
-      mapPanY = mapLastPanY + (e.touches[0].clientY - mapTouchStartY);
+    for (const t of e.changedTouches) {
+      activeTouches.set(t.identifier, { x: t.clientX, y: t.clientY });
+    }
+    const list = getTouches();
+
+    if (list.length === 1 && !wasPinching) {
+      mapPanX = panOriginX + (list[0].x - panStartX);
+      mapPanY = panOriginY + (list[0].y - panStartY);
       applyMapTransform();
-    } else if (e.touches.length === 2) {
-      const dist = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
-      if (mapLastDist > 0) {
-        const ratio = dist / mapLastDist;
-        const newScale = Math.min(10, Math.max(0.2, mapScale * ratio));
-        const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-        const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-        const rect = viewport.getBoundingClientRect();
-        const ox = midX - rect.left;
-        const oy = midY - rect.top;
-        mapPanX = ox - (ox - mapPanX) * (newScale / mapScale);
-        mapPanY = oy - (oy - mapPanY) * (newScale / mapScale);
+    } else if (list.length === 2) {
+      const dist = Math.hypot(list[1].x - list[0].x, list[1].y - list[0].y);
+      if (pinchStartDist > 0) {
+        // 開始時の距離との比率でスケールを計算（誤差蓄積なし）
+        const newScale = Math.min(10, Math.max(0.2, pinchStartScale * (dist / pinchStartDist)));
+        const scaleRatio = newScale / pinchStartScale;
         mapScale = newScale;
-        mapLastDist = dist;
+        mapPanX = pinchMidX - (pinchMidX - pinchOriginPanX) * scaleRatio;
+        mapPanY = pinchMidY - (pinchMidY - pinchOriginPanY) * scaleRatio;
         applyMapTransform();
       }
     }
   }, { passive: false });
 
   viewport.addEventListener('touchend', (e) => {
-    if (e.changedTouches.length === 1 && e.touches.length === 0) {
-      const touch = e.changedTouches[0];
-      const dx = Math.abs(touch.clientX - mapTouchStartX);
-      const dy = Math.abs(touch.clientY - mapTouchStartY);
-      const dt = Date.now() - mapTouchStartTime;
+    e.preventDefault();
+    const touch = e.changedTouches[0];
+
+    // 全指離した時にタップ判定
+    if (e.touches.length === 0 && !wasPinching) {
+      const dx = Math.abs(touch.clientX - panStartX);
+      const dy = Math.abs(touch.clientY - panStartY);
+      const dt = Date.now() - panStartTime;
       if (dx < 20 && dy < 20 && dt < 400) {
-        // タップ先がピンかどうか判定
         const target = document.elementFromPoint(touch.clientX, touch.clientY);
         const pinEl = target && target.closest('.map-pin');
         if (pinEl && !mapPinMode) {
-          // ピンをタップ → 情報表示
           showPinInfo(ev, pinEl.dataset.pinId);
         } else if (!pinEl && mapPinMode) {
-          // ピンモードで空白タップ → 新規ピン追加
           const rect = document.getElementById('map-inner').getBoundingClientRect();
           const x = ((touch.clientX - rect.left) / rect.width) * 100;
           const y = ((touch.clientY - rect.top) / rect.height) * 100;
           if (x >= 0 && x <= 100 && y >= 0 && y <= 100) {
-            pendingPinX = x;
-            pendingPinY = y;
+            pendingPinX = x; pendingPinY = y;
             openPinSelectModal(ev);
           }
         }
       }
     }
+
+    for (const t of e.changedTouches) activeTouches.delete(t.identifier);
+
+    // 2本指 → 1本指になったときパン基準をリセット（ジャンプ防止）
+    if (e.touches.length === 1) {
+      const remaining = e.touches[0];
+      panStartX = remaining.clientX;
+      panStartY = remaining.clientY;
+      panStartTime = Date.now();
+      panOriginX = mapPanX;
+      panOriginY = mapPanY;
+      wasPinching = false;
+    } else if (e.touches.length === 0) {
+      wasPinching = false;
+    }
   }, { passive: false });
 
   // PCマウス対応
-  let mouseDown = false, mouseMoveX = 0, mouseMoveY = 0;
+  let mouseDown = false, mouseStartX = 0, mouseStartY = 0;
+  let mouseOriginX = 0, mouseOriginY = 0, mouseMoved = false;
   viewport.addEventListener('mousedown', (e) => {
     mouseDown = true;
-    mapTouchStartX = e.clientX; mapTouchStartY = e.clientY;
-    mapTouchStartTime = Date.now();
-    mapLastPanX = mapPanX; mapLastPanY = mapPanY;
-    mouseMoveX = 0; mouseMoveY = 0;
+    mouseStartX = e.clientX; mouseStartY = e.clientY;
+    mouseOriginX = mapPanX; mouseOriginY = mapPanY;
+    mouseMoved = false;
   });
   viewport.addEventListener('mousemove', (e) => {
     if (!mouseDown) return;
-    mouseMoveX = e.clientX - mapTouchStartX;
-    mouseMoveY = e.clientY - mapTouchStartY;
-    mapPanX = mapLastPanX + mouseMoveX;
-    mapPanY = mapLastPanY + mouseMoveY;
+    const dx = e.clientX - mouseStartX, dy = e.clientY - mouseStartY;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) mouseMoved = true;
+    mapPanX = mouseOriginX + dx;
+    mapPanY = mouseOriginY + dy;
     applyMapTransform();
   });
   viewport.addEventListener('mouseup', (e) => {
     if (!mouseDown) return;
     mouseDown = false;
-    if (Math.abs(mouseMoveX) < 5 && Math.abs(mouseMoveY) < 5 && mapPinMode) {
+    if (!mouseMoved && mapPinMode) {
       const rect = document.getElementById('map-inner').getBoundingClientRect();
       const x = ((e.clientX - rect.left) / rect.width) * 100;
       const y = ((e.clientY - rect.top) / rect.height) * 100;
@@ -1405,8 +1443,7 @@ function initMapInteraction(ev) {
     const delta = e.deltaY > 0 ? 0.85 : 1.15;
     const newScale = Math.min(10, Math.max(0.2, mapScale * delta));
     const rect = viewport.getBoundingClientRect();
-    const ox = e.clientX - rect.left;
-    const oy = e.clientY - rect.top;
+    const ox = e.clientX - rect.left, oy = e.clientY - rect.top;
     mapPanX = ox - (ox - mapPanX) * (newScale / mapScale);
     mapPanY = oy - (oy - mapPanY) * (newScale / mapScale);
     mapScale = newScale;
