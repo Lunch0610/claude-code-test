@@ -658,6 +658,10 @@ input[type="number"],
 select,
 textarea {
   width: 100%;
+  min-width: 0;
+  display: block;
+  -webkit-appearance: none;
+  appearance: none;
   padding: 10px 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
