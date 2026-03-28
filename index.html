@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>同人イベントスケジューラー</title>
-  <link rel="stylesheet" href="style.css?v=5">
+  <link rel="stylesheet" href="style.css?v=6">
 </head>
 <body>
   <div id="app">
@@ -38,6 +38,7 @@
           <button class="tab" data-tab="items">頒布物</button>
           <button class="tab" data-tab="schedule">当日</button>
           <button class="tab" data-tab="budget">収支</button>
+          <button class="tab" data-tab="shopping">買い物</button>
         </div>
 
         <!-- 概要タブ -->
@@ -168,8 +169,46 @@
             </div>
           </div>
         </div>
+
+        <!-- 買い物リストタブ -->
+        <div id="tab-shopping" class="tab-content">
+          <div class="card">
+            <div class="section-header">
+              <h3>サークルチェックリスト</h3>
+              <button class="btn-secondary btn-sm" id="btn-import-circles">&#128229; インポート</button>
+            </div>
+            <div id="shopping-filter" class="shopping-filter hidden">
+              <button class="filter-btn active" data-section="all">全て</button>
+            </div>
+            <div id="shopping-stats" class="shopping-stats hidden"></div>
+            <div id="circle-list" class="circle-list"></div>
+            <div id="circle-empty" class="empty-inline">サークルリストをインポートしてください</div>
+          </div>
+        </div>
+
       </div>
     </main>
+  </div>
+
+  <!-- モーダル: サークルインポート -->
+  <div id="modal-import" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>サークルリストをインポート</h2>
+        <button class="modal-close" data-modal="modal-import">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="import-hint">サークルリストページの表を全選択してコピーし、以下に貼り付けてください。</p>
+        <div class="form-group">
+          <textarea id="input-import-text" rows="8" placeholder="ここに貼り付け..."></textarea>
+        </div>
+        <div id="import-preview" class="import-preview hidden"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" data-modal="modal-import">キャンセル</button>
+        <button class="btn-primary" id="btn-do-import">インポート</button>
+      </div>
+    </div>
   </div>
 
   <!-- モーダル: イベント追加/編集 -->
@@ -372,6 +411,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=5"></script>
+  <script src="app.js?v=6"></script>
 </body>
 </html>

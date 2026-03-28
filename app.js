@@ -166,6 +166,7 @@ function renderDetail(ev) {
   renderItems(ev);
   renderSchedule(ev);
   renderBudget(ev);
+  renderShopping(ev);
 }
 
 function renderSummary(ev) {
@@ -762,4 +763,206 @@ document.addEventListener('DOMContentLoaded', () => {
     saveData(events);
     renderEventList();
   }
+
+  // ===== 買い物リスト =====
+  document.getElementById('btn-import-circles').addEventListener('click', () => {
+    document.getElementById('input-import-text').value = '';
+    document.getElementById('import-preview').classList.add('hidden');
+    openModal('modal-import');
+  });
+
+  document.getElementById('input-import-text').addEventListener('input', () => {
+    const text = document.getElementById('input-import-text').value;
+    const circles = parseCircleList(text);
+    const preview = document.getElementById('import-preview');
+    if (circles.length > 0) {
+      preview.classList.remove('hidden');
+      preview.textContent = `${circles.length}サークルを検出しました`;
+    } else {
+      preview.classList.add('hidden');
+    }
+  });
+
+  document.getElementById('btn-do-import').addEventListener('click', () => {
+    const text = document.getElementById('input-import-text').value;
+    const circles = parseCircleList(text);
+    if (circles.length === 0) { alert('サークルを検出できませんでした'); return; }
+    const ev = events.find(e => e.id === currentEventId);
+    if (!ev) return;
+    if (!ev.circles) ev.circles = [];
+    // 既存スペース番号と重複しないものだけ追加
+    const existingSpaces = new Set(ev.circles.map(c => c.space));
+    const newCircles = circles.filter(c => !existingSpaces.has(c.space));
+    ev.circles.push(...newCircles);
+    saveData(events);
+    closeModal('modal-import');
+    renderShopping(ev);
+  });
 });
+
+// ===== サークルリストのパース =====
+function parseCircleList(text) {
+  const lines = text.split('\n').map(l => l.trim());
+  const circles = [];
+  // 全角セクションヘッダー (Ａ, Ｂ, ... or 英字1文字)
+  const sectionRe = /^[A-ZＡ-Ｚ]$/;
+  // スペース番号パターン: A-01, A01, など
+  const spaceRe = /^([A-Za-zＡ-Ｚａ-ｚ][0-9０-９]{1,2}-[0-9０-９]{2,3}|[A-Za-zＡ-Ｚａ-ｚ]-[0-9０-９]{2,3})/;
+
+  let i = 0;
+  // ヘッダー行をスキップ
+  while (i < lines.length && !spaceRe.test(lines[i])) i++;
+
+  while (i < lines.length) {
+    const line = lines[i];
+    if (!line || sectionRe.test(line)) { i++; continue; }
+
+    const match = line.match(/^([A-Za-zＡ-Ｚａ-ｚ][0-9０-９\-]+)\t(.+?)\t(.+?)(?:\t.*)?$/);
+    if (match) {
+      const space = match[1].replace(/[Ａ-Ｚ]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0))
+                            .replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0));
+      const name = match[2].trim();
+      const rep = match[3].trim();
+      // 次の3行 = web, pixiv, tw
+      const web = i+1 < lines.length ? lines[i+1] : '';
+      const pixiv = i+2 < lines.length ? lines[i+2] : '';
+      const tw = i+3 < lines.length ? lines[i+3] : '';
+
+      circles.push({
+        id: genId(),
+        space,
+        section: space.charAt(0).toUpperCase(),
+        name,
+        rep,
+        web: web && web !== '#' ? web : null,
+        pixiv: pixiv && pixiv !== '#' ? pixiv : null,
+        twitter: tw && tw !== '#' ? tw : null,
+        visited: false,
+        priority: false,
+        memo: ''
+      });
+      i += 4;
+    } else {
+      i++;
+    }
+  }
+  return circles;
+}
+
+// ===== 買い物リスト描画 =====
+function renderShopping(ev) {
+  const circles = ev.circles || [];
+  const list = document.getElementById('circle-list');
+  const empty = document.getElementById('circle-empty');
+  const filterEl = document.getElementById('shopping-filter');
+  const statsEl = document.getElementById('shopping-stats');
+
+  if (circles.length === 0) {
+    list.innerHTML = '';
+    empty.classList.remove('hidden');
+    filterEl.classList.add('hidden');
+    statsEl.classList.add('hidden');
+    return;
+  }
+
+  empty.classList.add('hidden');
+  filterEl.classList.remove('hidden');
+  statsEl.classList.remove('hidden');
+
+  // セクション一覧
+  const sections = [...new Set(circles.map(c => c.section))].sort();
+  const activeFilter = filterEl.dataset.active || 'all';
+
+  // フィルターボタン生成
+  filterEl.innerHTML = `<button class="filter-btn ${activeFilter === 'all' ? 'active' : ''}" data-section="all">全て</button>` +
+    sections.map(s => `<button class="filter-btn ${activeFilter === s ? 'active' : ''}" data-section="${s}">${s}</button>`).join('');
+
+  filterEl.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      filterEl.dataset.active = btn.dataset.section;
+      renderShopping(ev);
+    });
+  });
+
+  // 統計
+  const filtered = activeFilter === 'all' ? circles : circles.filter(c => c.section === activeFilter);
+  const visited = filtered.filter(c => c.visited).length;
+  const priority = filtered.filter(c => c.priority).length;
+  statsEl.textContent = `${visited}/${filtered.length}チェック済み　★優先: ${priority}`;
+
+  // リスト描画（優先を上に、チェック済みを下に）
+  const sorted = [...filtered].sort((a, b) => {
+    if (a.visited !== b.visited) return a.visited ? 1 : -1;
+    if (a.priority !== b.priority) return a.priority ? -1 : 1;
+    return a.space.localeCompare(b.space);
+  });
+
+  // セクション区切り
+  let currentSection = null;
+  list.innerHTML = sorted.map(c => {
+    let sectionHdr = '';
+    if (activeFilter === 'all' && c.section !== currentSection) {
+      currentSection = c.section;
+      sectionHdr = `<div class="circle-section-header">ブロック ${c.section}</div>`;
+    }
+    const links = [
+      c.twitter ? `<a class="circle-link" href="${escHtml(c.twitter)}" target="_blank">&#120143; Twitter/X</a>` : '',
+      c.pixiv ? `<a class="circle-link" href="${escHtml(c.pixiv)}" target="_blank">&#127912; pixiv</a>` : '',
+      c.web ? `<a class="circle-link" href="${escHtml(c.web)}" target="_blank">&#127760; web</a>` : ''
+    ].filter(Boolean).join('');
+
+    return `${sectionHdr}<div class="circle-item ${c.visited ? 'visited' : ''} ${c.priority ? 'priority-high' : ''}" data-id="${c.id}">
+      <div class="circle-check ${c.visited ? 'checked' : ''}" data-circle-id="${c.id}">
+        ${c.visited ? '&#10003;' : ''}
+      </div>
+      <div class="circle-info">
+        <div class="circle-header">
+          <span class="circle-space">${escHtml(c.space)}</span>
+          <span class="circle-name">${escHtml(c.name)}</span>
+        </div>
+        <div class="circle-rep">${escHtml(c.rep)}</div>
+        ${links ? `<div class="circle-links">${links}</div>` : ''}
+        ${c.memo ? `<div class="circle-memo">${escHtml(c.memo)}</div>` : ''}
+      </div>
+      <div class="circle-actions">
+        <button class="btn-star ${c.priority ? 'active' : ''}" data-star-id="${c.id}" title="優先">&#9733;</button>
+        <button class="btn-icon danger" data-delete-circle="${c.id}" style="font-size:12px">&#128465;</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  // チェック
+  list.querySelectorAll('.circle-check').forEach(el => {
+    el.addEventListener('click', () => toggleCircleVisited(ev, el.dataset.circleId));
+  });
+  // 優先星
+  list.querySelectorAll('.btn-star').forEach(el => {
+    el.addEventListener('click', () => toggleCirclePriority(ev, el.dataset.starId));
+  });
+  // 削除
+  list.querySelectorAll('[data-delete-circle]').forEach(el => {
+    el.addEventListener('click', () => {
+      confirmDelete('このサークルをリストから削除しますか？', () => {
+        ev.circles = ev.circles.filter(c => c.id !== el.dataset.deleteCircle);
+        saveData(events);
+        renderShopping(ev);
+      });
+    });
+  });
+}
+
+function toggleCircleVisited(ev, id) {
+  const c = (ev.circles || []).find(c => c.id === id);
+  if (!c) return;
+  c.visited = !c.visited;
+  saveData(events);
+  renderShopping(ev);
+}
+
+function toggleCirclePriority(ev, id) {
+  const c = (ev.circles || []).find(c => c.id === id);
+  if (!c) return;
+  c.priority = !c.priority;
+  saveData(events);
+  renderShopping(ev);
+}
