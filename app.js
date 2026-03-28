@@ -465,6 +465,19 @@ function switchTab(tabName) {
   document.querySelectorAll('.tab-content').forEach(tc => {
     tc.classList.toggle('active', tc.id === `tab-${tabName}`);
   });
+  // マップタブ表示時にスケールを再計算（非表示時は clientWidth=0 のため）
+  if (tabName === 'map') {
+    const img = document.getElementById('map-image');
+    const viewport = document.getElementById('map-viewport');
+    if (img && img.naturalWidth && viewport.clientWidth) {
+      mapScale = Math.min(
+        viewport.clientWidth / img.naturalWidth,
+        viewport.clientHeight / img.naturalHeight
+      );
+      mapPanX = 0; mapPanY = 0;
+      applyMapTransform();
+    }
+  }
 }
 
 // ===== モーダル =====
