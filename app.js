@@ -796,6 +796,7 @@ document.addEventListener('DOMContentLoaded', () => {
       memo: document.getElementById('input-wish-memo').value.trim(),
       bought: false
     });
+    c.priority = true;
     saveData(events);
     closeModal('modal-wish');
     renderShopping(ev);
