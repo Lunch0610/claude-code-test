@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>同人イベントスケジューラー</title>
-  <link rel="stylesheet" href="style.css?v=7">
+  <link rel="stylesheet" href="style.css?v=8">
 </head>
 <body>
   <div id="app">
@@ -172,15 +172,19 @@
 
         <!-- 買い物リストタブ -->
         <div id="tab-shopping" class="tab-content">
-          <div class="card">
-            <div class="section-header">
-              <h3>サークルチェックリスト</h3>
-              <button class="btn-secondary btn-sm" id="btn-import-circles">&#128229; インポート</button>
+          <div class="shopping-sticky-header">
+            <div class="card shopping-header-card">
+              <div class="section-header">
+                <h3>サークルチェックリスト</h3>
+                <button class="btn-secondary btn-sm" id="btn-import-circles">&#128229; インポート</button>
+              </div>
+              <div id="shopping-filter" class="shopping-filter hidden">
+                <button class="filter-btn active" data-section="all">全て</button>
+              </div>
+              <div id="shopping-stats" class="shopping-stats hidden"></div>
             </div>
-            <div id="shopping-filter" class="shopping-filter hidden">
-              <button class="filter-btn active" data-section="all">全て</button>
-            </div>
-            <div id="shopping-stats" class="shopping-stats hidden"></div>
+          </div>
+          <div class="card shopping-list-card">
             <div id="circle-list" class="circle-list"></div>
             <div id="circle-empty" class="empty-inline">サークルリストをインポートしてください</div>
           </div>

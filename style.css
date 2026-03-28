@@ -719,11 +719,29 @@ textarea { resize: vertical; }
 .filter-btn:hover { border-color: var(--primary); color: var(--primary); }
 .filter-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
 
+.shopping-sticky-header {
+  position: sticky;
+  top: 64px;
+  z-index: 50;
+  margin-bottom: 0;
+}
+
+.shopping-header-card {
+  border-radius: var(--radius) var(--radius) 0 0;
+  margin-bottom: 0;
+  border-bottom: none;
+}
+
+.shopping-list-card {
+  border-radius: 0 0 var(--radius) var(--radius);
+  margin-bottom: 16px;
+}
+
 .shopping-stats {
   font-size: 13px;
   color: var(--text-muted);
-  margin-bottom: 10px;
-  padding: 8px 12px;
+  margin-bottom: 0;
+  padding: 6px 12px;
   background: var(--bg);
   border-radius: var(--radius-sm);
 }
