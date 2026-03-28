@@ -730,7 +730,7 @@ document.addEventListener('DOMContentLoaded', () => {
       date: dateStr,
       venue: '東京ビッグサイト',
       space: '東L-01a',
-      setupTime: '09:00',
+      setupTime: '10:00-11:30',
       note: 'はじめてのイベント参加！',
       tasks: [],
       items: [
