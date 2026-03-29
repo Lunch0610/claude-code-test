@@ -141,6 +141,12 @@ function getDueClass(dueStr) {
   return '';
 }
 
+function formatDateShort(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr + 'T00:00:00');
+  return `${d.getMonth() + 1}/${d.getDate()}（${['日','月','火','水','木','金','土'][d.getDay()]}）`;
+}
+
 function getDueLabel(dueStr) {
   if (!dueStr) return '';
   const today = new Date().toISOString().slice(0, 10);
@@ -302,7 +308,7 @@ function renderTasks(ev) {
       <div class="task-info">
         <div class="task-name">${escHtml(t.name)}</div>
         <div class="task-meta">
-          ${t.due ? `<span class="task-due ${dueClass}">&#128197; ${formatDate(t.due)}</span>` : ''}
+          ${t.due ? `<span class="task-due ${dueClass}">&#128197; ${formatDateShort(t.due)}</span>` : ''}
           ${dueLabel ? `<span class="due-countdown ${dueClass}">${dueLabel}</span>` : ''}
           <span class="task-category">${getCategoryLabel(t.category)}</span>
         </div>
