@@ -445,17 +445,33 @@ body {
 }
 
 .task-info { flex: 1; min-width: 0; }
-.task-name { font-size: 14px; font-weight: 500; }
+
+.task-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.task-name {
+  font-size: 14px;
+  font-weight: 500;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 .task-meta {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 4px 6px;
-  margin-top: 3px;
+  gap: 4px;
+  margin-top: 2px;
   font-size: 12px;
   color: var(--text-muted);
 }
+
+.task-meta-sep { color: var(--border); }
 
 .task-due {
   color: var(--text-muted);

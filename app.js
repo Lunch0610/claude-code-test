@@ -306,10 +306,13 @@ function renderTasks(ev) {
         ${t.done ? '&#10003;' : ''}
       </div>
       <div class="task-info">
-        <div class="task-name">${escHtml(t.name)}</div>
-        <div class="task-meta">
-          ${t.due ? `<span class="task-due ${dueClass}">&#128197; ${formatDateShort(t.due)}</span>` : ''}
+        <div class="task-name-row">
+          <span class="task-name">${escHtml(t.name)}</span>
           ${dueLabel ? `<span class="due-countdown ${dueClass}">${dueLabel}</span>` : ''}
+        </div>
+        <div class="task-meta">
+          ${t.due ? `<span class="task-due ${dueClass}">${formatDateShort(t.due)}</span>` : ''}
+          ${t.due ? `<span class="task-meta-sep">·</span>` : ''}
           <span class="task-category">${getCategoryLabel(t.category)}</span>
         </div>
       </div>
