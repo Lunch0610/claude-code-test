@@ -1,3 +1,22 @@
+// ===== SVGアイコン =====
+const ICON_PATHS = {
+  trash:    '<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>',
+  x:        '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
+  share:    '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>',
+  upload:   '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>',
+  'map-pin':'<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>',
+  image:    '<rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>',
+  globe:    '<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>',
+  clipboard:'<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>',
+  check:    '<polyline points="20 6 9 17 4 12"/>',
+  'file-text':'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>',
+  'map':    '<polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/>',
+};
+function icon(name, cls = '') {
+  const p = ICON_PATHS[name] || '';
+  return `<svg class="icon${cls ? ' '+cls : ''}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+}
+
 // ===== テーマ =====
 const THEMES = {
   pink:   { primary: '#e85d9d', dark: '#c94080', light: '#fce4f0', bg: '#f8f4f9', border: '#e0d6e8' },
@@ -316,7 +335,7 @@ function renderTasks(ev) {
           <span class="task-category">${getCategoryLabel(t.category)}</span>
         </div>
       </div>
-      <button class="btn-icon danger" data-delete-task="${t.id}">&#128465;</button>
+      <button class="btn-icon danger" data-delete-task="${t.id}">${icon("trash")}</button>
     </div>`;
   }).join('');
 
@@ -391,7 +410,7 @@ function renderItems(ev) {
           <div class="item-stock-fill" style="width:${soldPct}%"></div>
         </div>` : ''}
       </div>
-      <button class="btn-icon danger" data-delete-item="${item.id}">&#128465;</button>
+      <button class="btn-icon danger" data-delete-item="${item.id}">${icon("trash")}</button>
     </div>`;
   }).join('');
 
@@ -432,7 +451,7 @@ function renderSchedule(ev) {
         <div class="schedule-title">${escHtml(s.title)}</div>
         ${s.note ? `<div class="schedule-note">${escHtml(s.note)}</div>` : ''}
       </div>
-      <button class="btn-icon danger" data-delete-sched="${s.id}">&#128465;</button>
+      <button class="btn-icon danger" data-delete-sched="${s.id}">${icon("trash")}</button>
     </div>
   `).join('');
 
@@ -486,7 +505,7 @@ function renderBudgetList(listId, emptyId, items, type) {
       <span class="budget-category">${getCategoryLabel(item.category)}</span>
       <span class="budget-name">${escHtml(item.name)}</span>
       <span class="budget-amount ${type}">${formatMoney(item.amount)}</span>
-      <button class="btn-icon danger" data-delete-budget="${item.id}" data-budget-type="${type}">&#128465;</button>
+      <button class="btn-icon danger" data-delete-budget="${item.id}" data-budget-type="${type}">${icon("trash")}</button>
     </div>
   `).join('');
 
@@ -945,8 +964,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const ta = document.getElementById('share-text-output');
     navigator.clipboard.writeText(ta.value).then(() => {
       const btn = document.getElementById('btn-copy-share');
-      btn.textContent = '✓ コピーしました';
-      setTimeout(() => { btn.textContent = '📋 コピー'; }, 2000);
+      btn.innerHTML = icon('check') + ' コピーしました';
+      setTimeout(() => { btn.innerHTML = icon('clipboard') + ' コピー'; }, 2000);
     }).catch(() => {
       ta.select();
       document.execCommand('copy');
@@ -1090,9 +1109,9 @@ function renderShopping(ev) {
       sectionHdr = `<div class="circle-section-header">ブロック ${c.section}</div>`;
     }
     const links = [
-      c.twitter ? `<a class="circle-link" href="${escHtml(c.twitter)}" target="_blank">&#120143; Twitter/X</a>` : '',
-      c.pixiv ? `<a class="circle-link" href="${escHtml(c.pixiv)}" target="_blank">&#127912; pixiv</a>` : '',
-      c.web ? `<a class="circle-link" href="${escHtml(c.web)}" target="_blank">&#127760; web</a>` : ''
+      c.twitter ? `<a class="circle-link" href="${escHtml(c.twitter)}" target="_blank">𝕏 Twitter/X</a>` : '',
+      c.pixiv ? `<a class="circle-link" href="${escHtml(c.pixiv)}" target="_blank">pixiv</a>` : '',
+      c.web ? `<a class="circle-link" href="${escHtml(c.web)}" target="_blank">${icon("globe")} web</a>` : ''
     ].filter(Boolean).join('');
 
     return `${sectionHdr}<div class="circle-item ${c.visited ? 'visited' : ''} ${c.priority ? 'priority-high' : ''}" data-id="${c.id}">
@@ -1111,7 +1130,7 @@ function renderShopping(ev) {
       </div>
       <div class="circle-actions">
         <button class="btn-star ${c.priority ? 'active' : ''}" data-star-id="${c.id}" title="優先">&#9733;</button>
-        <button class="btn-icon danger" data-delete-circle="${c.id}" style="font-size:12px">&#128465;</button>
+        <button class="btn-icon danger" data-delete-circle="${c.id}">${icon('trash')}</button>
       </div>
     </div>`;
   }).join('');
@@ -1252,7 +1271,7 @@ function renderWishItems(c) {
       ${qty > 1 ? `<span class="wish-qty">×${qty}</span>` : ''}
       ${w.price && qty > 1 ? `<span class="wish-subtotal">=¥${subtotal.toLocaleString()}</span>` : ''}
       ${w.memo ? `<span class="wish-memo-text">${escHtml(w.memo)}</span>` : ''}
-      <button class="btn-icon danger" data-delete-wish="${w.id}" style="font-size:11px;padding:2px 4px">&#10005;</button>
+      <button class="btn-icon danger" data-delete-wish="${w.id}">${icon('x','icon-sm')}</button>
     </div>`;
   }).join('')}
   ${circleTotal > 0 ? `<div class="circle-total">小計 ¥${circleTotal.toLocaleString()}</div>` : ''}
