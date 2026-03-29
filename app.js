@@ -1,3 +1,35 @@
+// ===== テーマ =====
+const THEMES = {
+  pink:   { primary: '#e85d9d', dark: '#c94080', light: '#fce4f0', bg: '#f8f4f9', border: '#e0d6e8' },
+  purple: { primary: '#7c5cbf', dark: '#5e40a0', light: '#ede8f8', bg: '#f5f3fb', border: '#ddd6f0' },
+  blue:   { primary: '#3b82f6', dark: '#2563eb', light: '#dbeafe', bg: '#f0f5ff', border: '#d1d9f0' },
+  teal:   { primary: '#0d9488', dark: '#0f766e', light: '#ccfbf1', bg: '#f0fbf9', border: '#c0e8e4' },
+  green:  { primary: '#16a34a', dark: '#15803d', light: '#dcfce7', bg: '#f0faf4', border: '#d0e8d8' },
+  orange: { primary: '#ea580c', dark: '#c2410c', light: '#ffedd5', bg: '#fdf6f0', border: '#edd8c8' },
+  red:    { primary: '#e53e3e', dark: '#c53030', light: '#fed7d7', bg: '#fff5f5', border: '#f0d0d0' },
+  slate:  { primary: '#475569', dark: '#334155', light: '#e2e8f0', bg: '#f4f5f7', border: '#d8dde6' },
+};
+
+const THEME_KEY = 'doujinshi-theme';
+
+function applyTheme(name) {
+  const t = THEMES[name] || THEMES.pink;
+  const r = document.documentElement;
+  r.style.setProperty('--primary', t.primary);
+  r.style.setProperty('--primary-dark', t.dark);
+  r.style.setProperty('--primary-light', t.light);
+  r.style.setProperty('--bg', t.bg);
+  r.style.setProperty('--border', t.border);
+  localStorage.setItem(THEME_KEY, name);
+  document.querySelectorAll('.theme-swatch').forEach(el => {
+    el.classList.toggle('active', el.dataset.theme === name);
+  });
+}
+
+function loadTheme() {
+  applyTheme(localStorage.getItem(THEME_KEY) || 'pink');
+}
+
 // ===== IndexedDB (マップ画像) =====
 const MAP_DB_NAME = 'doujinshi-map-db';
 const MAP_DB_STORE = 'images';
@@ -601,7 +633,17 @@ function goBack() {
 
 // ===== イベントリスナー =====
 document.addEventListener('DOMContentLoaded', () => {
+  loadTheme();
   renderEventList();
+
+  // 設定
+  document.getElementById('btn-settings').addEventListener('click', () => {
+    openModal('modal-settings');
+  });
+  document.getElementById('theme-swatches').addEventListener('click', (e) => {
+    const swatch = e.target.closest('.theme-swatch');
+    if (swatch) applyTheme(swatch.dataset.theme);
+  });
 
   // 戻るボタン
   document.getElementById('btn-back').addEventListener('click', goBack);

@@ -78,6 +78,50 @@ body {
   border: 1px solid var(--border);
 }
 
+/* ===== 設定 ===== */
+.btn-icon-header {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  line-height: 1;
+  transition: background 0.15s;
+  margin-left: auto;
+}
+.btn-icon-header:hover { background: var(--primary-light); color: var(--primary); }
+
+.settings-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin: 0 0 10px;
+}
+
+.theme-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.theme-swatch {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s;
+  outline: none;
+}
+.theme-swatch:hover { transform: scale(1.15); }
+.theme-swatch.active {
+  border-color: var(--text);
+  transform: scale(1.1);
+  box-shadow: 0 0 0 2px white inset;
+}
+
 /* ===== ボタン ===== */
 .btn-primary {
   background: var(--primary);
