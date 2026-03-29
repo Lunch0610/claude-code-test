@@ -141,6 +141,16 @@ function getDueClass(dueStr) {
   return '';
 }
 
+function getDueLabel(dueStr) {
+  if (!dueStr) return '';
+  const today = new Date().toISOString().slice(0, 10);
+  const diff = Math.round((new Date(dueStr) - new Date(today)) / 86400000);
+  if (diff < 0) return `${Math.abs(diff)}日超過`;
+  if (diff === 0) return '今日';
+  if (diff === 1) return '明日';
+  return `あと${diff}日`;
+}
+
 function getCategoryLabel(cat) {
   const map = {
     manuscript: '原稿', printing: '印刷・製本', preparation: '準備',
@@ -283,6 +293,7 @@ function renderTasks(ev) {
 
   list.innerHTML = sorted.map(t => {
     const dueClass = t.done ? '' : getDueClass(t.due);
+    const dueLabel = t.done ? '' : getDueLabel(t.due);
     return `
     <div class="task-item ${t.done ? 'completed' : ''}" data-id="${t.id}">
       <div class="task-checkbox ${t.done ? 'checked' : ''}" data-task-id="${t.id}">
@@ -292,6 +303,7 @@ function renderTasks(ev) {
         <div class="task-name">${escHtml(t.name)}</div>
         <div class="task-meta">
           ${t.due ? `<span class="task-due ${dueClass}">&#128197; ${formatDate(t.due)}</span>` : ''}
+          ${dueLabel ? `<span class="due-countdown ${dueClass}">${dueLabel}</span>` : ''}
           <span class="task-category">${getCategoryLabel(t.category)}</span>
         </div>
       </div>
